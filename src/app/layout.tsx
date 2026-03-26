@@ -1,9 +1,10 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Brain, Menu } from "lucide-react";
+import { Brain, Menu, X, Sun, Moon } from "lucide-react";
 import { useSession, signOut, SessionProvider } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import "./globals.css";
@@ -20,6 +21,29 @@ const geistMono = Geist_Mono({
 
 function Navbar() {
   const { data: session } = useSession();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('theme');
+    const dark = stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    setIsDark(dark);
+    document.documentElement.classList.toggle('dark', dark);
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.classList.toggle('dark', next);
+    localStorage.setItem('theme', next ? 'dark' : 'light');
+  };
+
+  const navLinks = [
+    { href: '/evaluate', label: '评测' },
+    { href: '/rankings', label: '排行榜' },
+    { href: '/benchmarks', label: '测评集' },
+    { href: '/skill', label: '技能' },
+  ];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
@@ -32,33 +56,23 @@ function Navbar() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
-          <Link
-            href="/evaluate"
-            className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            评测
-          </Link>
-          <Link
-            href="/rankings"
-            className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            排行榜
-          </Link>
-          <Link
-            href="/benchmarks"
-            className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            测评集
-          </Link>
-          <Link
-            href="/skill"
-            className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            技能
-          </Link>
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              {link.label}
+            </Link>
+          ))}
         </nav>
 
         <div className="flex items-center gap-2">
+          {/* Theme toggle */}
+          <Button variant="ghost" size="icon-sm" onClick={toggleTheme} title={isDark ? '切换亮色' : '切换暗色'}>
+            {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          </Button>
+
           {session ? (
             <>
               <Link href="/dashboard">
@@ -82,12 +96,61 @@ function Navbar() {
               </Button>
             </Link>
           )}
-          <Button variant="ghost" size="icon-sm" className="md:hidden">
-            <Menu className="size-4" />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="md:hidden"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            {menuOpen ? <X className="size-4" /> : <Menu className="size-4" />}
             <span className="sr-only">Toggle menu</span>
           </Button>
         </div>
       </div>
+
+      {/* Mobile menu */}
+      {menuOpen && (
+        <div className="border-t border-border/40 bg-background md:hidden">
+          <nav className="container mx-auto max-w-7xl space-y-1 px-4 py-4">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMenuOpen(false)}
+                className="block rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                {link.label}
+              </Link>
+            ))}
+            <hr className="my-2 border-border/40" />
+            {session ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMenuOpen(false)}
+                  className="block rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={() => { setMenuOpen(false); signOut({ callbackUrl: '/' }); }}
+                  className="block w-full rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  退出
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setMenuOpen(false)}
+                className="block rounded-md px-3 py-2 text-sm font-medium text-primary hover:bg-muted"
+              >
+                登录
+              </Link>
+            )}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

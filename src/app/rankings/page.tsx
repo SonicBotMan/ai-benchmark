@@ -212,6 +212,8 @@ export default function RankingsPage() {
   const [provider, setProvider] = useState<string>('all')
   const [selectedModels, setSelectedModels] = useState<string[]>([])
   const [isMockData, setIsMockData] = useState(false)
+  const [page, setPage] = useState(1)
+  const pageSize = 20
 
   useEffect(() => {
     async function fetchData() {
@@ -266,6 +268,8 @@ export default function RankingsPage() {
   )
 
   const sorted = [...filteredData].sort((a, b) => getScoreForDimension(b) - getScoreForDimension(a))
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const paginated = sorted.slice((page - 1) * pageSize, page * pageSize)
 
   const toggleModel = (id: string) => {
     setSelectedModels((prev) => {
@@ -378,8 +382,8 @@ export default function RankingsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sorted.map((model, idx) => {
-                    const rank = idx + 1
+                  {paginated.map((model) => {
+                    const rank = sorted.indexOf(model) + 1
                     const isSelected = selectedModels.includes(model.id)
                     return (
                       <TableRow
@@ -436,6 +440,31 @@ export default function RankingsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              上一页
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {page} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              下一页
+            </Button>
+          </div>
+        )}
 
         {/* Radar Chart Comparison */}
         {selectedModels.length >= 2 && (
