@@ -41,11 +41,11 @@ const dimensions = [
 ];
 
 const models = [
-  { name: "GPT-4o", provider: "OpenAI" },
-  { name: "Claude 3.5 Sonnet", provider: "Anthropic" },
-  { name: "Gemini 1.5 Pro", provider: "Google" },
-  { name: "Llama 3.1", provider: "Meta" },
-  { name: "Mistral Large", provider: "Mistral AI" },
+  { name: "GPT-4.1", provider: "OpenAI" },
+  { name: "Claude 4 Opus", provider: "Anthropic" },
+  { name: "Gemini 2.5 Pro", provider: "Google" },
+  { name: "DeepSeek R1", provider: "DeepSeek" },
+  { name: "Qwen 3", provider: "Alibaba" },
 ];
 
 export default function Home() {

@@ -101,23 +101,23 @@ const TIER_STYLES: Record<string, string> = {
   enterprise: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300',
 };
 
-const MBTI_DESCRIPTIONS: Record<string, string> = {
-  INTJ: '战略性思考者，擅长系统性分析和长远规划，追求高效和精确的解决方案。',
-  INTP: '逻辑型探索者，热爱理论研究和抽象思维，善于发现隐藏的模式和联系。',
-  ENTJ: '天生的领导者，善于组织资源和制定战略，驱动团队达成目标。',
-  ENTP: '创新的思想家，善于发现问题的新角度，喜欢挑战传统观念。',
-  INFJ: '富有洞察力的理想主义者，善于理解他人动机，追求有意义的目标。',
-  INFP: '富有创造力的价值驱动者，善于发现他人潜能，追求内心和谐。',
-  ENFJ: '富有感召力的引导者，善于激励他人成长，关注团队发展。',
-  ENFP: '热情洋溢的探索者，善于发现可能性，喜欢与人建立深层联系。',
-  ISTJ: '可靠务实的执行者，注重细节和规则，善于建立高效的流程。',
-  ISFJ: '细心体贴的守护者，善于照顾他人需求，默默支持团队运作。',
-  ESTJ: '高效的管理者，善于建立秩序和标准，确保任务按时完成。',
-  ESFJ: '热情友好的协调者，善于营造和谐氛围，关注团队凝聚力。',
-  ISTP: '灵活的问题解决者，善于分析系统运作，动手能力强。',
-  ISFP: '温和敏锐的艺术家，善于感知细微变化，追求美学体验。',
-  ESTP: '行动导向的实践者，善于应对即时挑战，享受快节奏环境。',
-  ESFP: '活力四射的表演者，善于活跃气氛，享受当下每一刻。',
+const MBTI_DESCRIPTIONS: Record<string, { name: string; desc: string }> = {
+  INTJ: { name: '建筑师', desc: '战略性思考者，擅长系统性分析和长远规划，追求高效和精确的解决方案。' },
+  INTP: { name: '逻辑学家', desc: '逻辑型探索者，热爱理论研究和抽象思维，善于发现隐藏的模式和联系。' },
+  ENTJ: { name: '指挥官', desc: '天生的领导者，善于组织资源和制定战略，驱动团队达成目标。' },
+  ENTP: { name: '辩论家', desc: '创新的思想家，善于发现问题的新角度，喜欢挑战传统观念。' },
+  INFJ: { name: '提倡者', desc: '富有洞察力的理想主义者，善于理解他人动机，追求有意义的目标。' },
+  INFP: { name: '调停者', desc: '富有创造力的价值驱动者，善于发现他人潜能，追求内心和谐。' },
+  ENFJ: { name: '主人公', desc: '富有感召力的引导者，善于激励他人成长，关注团队发展。' },
+  ENFP: { name: '竞选者', desc: '热情洋溢的探索者，善于发现可能性，喜欢与人建立深层联系。' },
+  ISTJ: { name: '物流师', desc: '可靠务实的执行者，注重细节和规则，善于建立高效的流程。' },
+  ISFJ: { name: '守卫者', desc: '细心体贴的守护者，善于照顾他人需求，默默支持团队运作。' },
+  ESTJ: { name: '总经理', desc: '高效的管理者，善于建立秩序和标准，确保任务按时完成。' },
+  ESFJ: { name: '执政官', desc: '热情友好的协调者，善于营造和谐氛围，关注团队凝聚力。' },
+  ISTP: { name: '鉴赏家', desc: '灵活的问题解决者，善于分析系统运作，动手能力强。' },
+  ISFP: { name: '探险家', desc: '温和敏锐的艺术家，善于感知细微变化，追求美学体验。' },
+  ESTP: { name: '企业家', desc: '行动导向的实践者，善于应对即时挑战，享受快节奏环境。' },
+  ESFP: { name: '表演者', desc: '活力四射的表演者，善于活跃气氛，享受当下每一刻。' },
 };
 
 function getLevelBadgeStyle(level: string) {
@@ -343,19 +343,10 @@ export default function ReportPage() {
             </div>
             <div className="flex-1 space-y-2">
               <h3 className="text-base font-semibold">
-                {report.mbtiType} -{' '}
-                {report.mbtiType === 'INTJ'
-                  ? '建筑师'
-                  : report.mbtiType === 'INTP'
-                    ? '逻辑学家'
-                    : report.mbtiType === 'ENTJ'
-                      ? '指挥官'
-                      : report.mbtiType === 'ENTP'
-                        ? '辩论家'
-                        : report.mbtiType}
+                {report.mbtiType} - {MBTI_DESCRIPTIONS[report.mbtiType]?.name ?? report.mbtiType}
               </h3>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                {MBTI_DESCRIPTIONS[report.mbtiType] || '暂无描述'}
+                {MBTI_DESCRIPTIONS[report.mbtiType]?.desc ?? '暂无描述'}
               </p>
             </div>
           </div>
