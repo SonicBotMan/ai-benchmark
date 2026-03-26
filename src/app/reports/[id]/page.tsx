@@ -140,8 +140,41 @@ export default function ReportPage() {
       try {
         const res = await fetch(`/api/v1/reports/${params.id}`);
         if (res.ok) {
-          const data = await res.json();
-          setReport(data);
+          const raw = await res.json();
+          // Transform API response to match ReportData interface
+          const transformed: ReportData = {
+            id: raw.id,
+            model: {
+              name: raw.model?.name ?? 'Unknown',
+              provider: raw.model?.provider ?? 'Unknown',
+              version: raw.model?.version ?? raw.model?.slug ?? '',
+            },
+            totalScore: raw.totalScore ?? 0,
+            levelRating: raw.levelRating ?? 'novice',
+            mbtiType: raw.mbtiType ?? 'XXXX',
+            tier: raw.tier ?? 'basic',
+            dimensionScores: {
+              IQ: raw.iqScore ?? raw.dimensionScores?.IQ ?? 0,
+              EQ: raw.eqScore ?? raw.dimensionScores?.EQ ?? 0,
+              TQ: raw.tqScore ?? raw.dimensionScores?.TQ ?? 0,
+              AQ: raw.aqScore ?? raw.dimensionScores?.AQ ?? 0,
+              SQ: raw.sqScore ?? raw.dimensionScores?.SQ ?? 0,
+            },
+            subDimensionScores: raw.subDimensionScores ?? {},
+            topStrengths: Array.isArray(raw.strengths)
+              ? raw.strengths.map((s: string | { name: string; score: number }) =>
+                  typeof s === 'string' ? { name: s, score: 0 } : s
+                )
+              : MOCK_REPORT.topStrengths,
+            topWeaknesses: Array.isArray(raw.weaknesses)
+              ? raw.weaknesses.map((w: string | { name: string; score: number }) =>
+                  typeof w === 'string' ? { name: w, score: 0 } : w
+                )
+              : MOCK_REPORT.topWeaknesses,
+            createdAt: raw.createdAt ?? raw.completedAt ?? new Date().toISOString(),
+          };
+          setReport(transformed);
+          setLoading(false);
           return;
         }
       } catch {
