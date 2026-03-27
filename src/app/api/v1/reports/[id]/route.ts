@@ -18,6 +18,14 @@ export async function GET(
             provider: true,
           },
         },
+        agent: {
+          select: {
+            id: true,
+            name: true,
+            platform: true,
+            modelBackbone: true,
+          },
+        },
         user: {
           select: {
             id: true,
@@ -52,6 +60,8 @@ export async function GET(
       status: evaluation.status,
       tier: evaluation.tier,
       model: evaluation.model,
+      agent: evaluation.agent,
+      agentId: evaluation.agentId,
       user: evaluation.user,
       totalScore: evaluation.totalScore,
       levelRating: evaluation.levelRating,
@@ -61,6 +71,8 @@ export async function GET(
       tqScore: evaluation.tqScore,
       aqScore: evaluation.aqScore,
       sqScore: evaluation.sqScore,
+      tags: evaluation.tags,
+      personaQuote: evaluation.personaQuote,
       strengths: evaluation.strengths,
       weaknesses: evaluation.weaknesses,
       answers: evaluation.answers,
