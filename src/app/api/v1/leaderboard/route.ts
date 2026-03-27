@@ -5,7 +5,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const dimension = searchParams.get('dimension');
-    const provider = searchParams.get('provider');
+    const platform = searchParams.get('platform');
     const tier = searchParams.get('tier');
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
@@ -18,95 +18,63 @@ export async function GET(req: NextRequest) {
       whereClause.tier = tier;
     }
 
-    if (provider) {
-      whereClause.model = { provider };
+    if (platform) {
+      whereClause.agent = { platform };
     }
 
     const evaluations = await prisma.evaluation.findMany({
       where: whereClause,
       include: {
         model: {
-          select: {
-            id: true,
-            name: true,
-            provider: true,
-          },
+          select: { id: true, name: true, provider: true },
+        },
+        agent: {
+          select: { id: true, name: true, platform: true, modelBackbone: true },
+        },
+        user: {
+          select: { id: true, name: true },
         },
       },
-      orderBy: { completedAt: 'desc' },
+      orderBy: { totalScore: 'desc' },
     });
 
-    const modelMap = new Map<string, {
-      model: { id: string; name: string; provider: string };
-      scores: number[];
-      dimensionScores: Record<string, number[]>;
-      evaluationCount: number;
-    }>();
+    // Each evaluation is a separate entry (agent instance ranking)
+    const leaderboard = evaluations
+      .filter(e => e.totalScore !== null && e.totalScore > 0)
+      .map(evaluation => ({
+        evaluationId: evaluation.id,
+        sessionId: evaluation.sessionId,
+        agent: evaluation.agent ? {
+          id: evaluation.agent.id,
+          name: evaluation.agent.name,
+          platform: evaluation.agent.platform,
+          modelBackbone: evaluation.agent.modelBackbone,
+        } : null,
+        model: {
+          id: evaluation.model.id,
+          name: evaluation.model.name,
+          provider: evaluation.model.provider,
+        },
+        user: evaluation.user ? {
+          name: evaluation.user.name || '匿名用户',
+        } : null,
+        totalScore: evaluation.totalScore,
+        levelRating: evaluation.levelRating,
+        tags: evaluation.tags,
+        iqScore: evaluation.iqScore ?? 0,
+        eqScore: evaluation.eqScore ?? 0,
+        tqScore: evaluation.tqScore ?? 0,
+        aqScore: evaluation.aqScore ?? 0,
+        sqScore: evaluation.sqScore ?? 0,
+        tier: evaluation.tier,
+        completedAt: evaluation.completedAt,
+      }));
 
-    for (const evaluation of evaluations) {
-      const modelId = evaluation.model.id;
-
-      if (!modelMap.has(modelId)) {
-        modelMap.set(modelId, {
-          model: evaluation.model,
-          scores: [],
-          dimensionScores: {},
-          evaluationCount: 0,
-        });
-      }
-
-      const entry = modelMap.get(modelId)!;
-      entry.evaluationCount += 1;
-
-      if (evaluation.totalScore !== null) {
-        entry.scores.push(evaluation.totalScore);
-      }
-
-      const dimMap: Record<string, number | null> = {
-        IQ: evaluation.iqScore,
-        EQ: evaluation.eqScore,
-        TQ: evaluation.tqScore,
-        AQ: evaluation.aqScore,
-        SQ: evaluation.sqScore,
-      };
-
-      for (const [dimKey, score] of Object.entries(dimMap)) {
-        if (score !== null) {
-          if (!entry.dimensionScores[dimKey]) {
-            entry.dimensionScores[dimKey] = [];
-          }
-          entry.dimensionScores[dimKey].push(score);
-        }
-      }
-    }
-
-    const leaderboard = Array.from(modelMap.values()).map(entry => {
-      const avgTotalScore = entry.scores.length > 0
-        ? Math.round(entry.scores.reduce((a, b) => a + b, 0) / entry.scores.length)
-        : 0;
-
-      const avgDimensionScores: Record<string, number> = {};
-      for (const [dim, scores] of Object.entries(entry.dimensionScores)) {
-        avgDimensionScores[dim] = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-      }
-
-      return {
-        model: entry.model,
-        avgTotalScore,
-        avgDimensionScores,
-        evaluationCount: entry.evaluationCount,
-      };
-    });
-
-    let sorted = leaderboard.sort((a, b) => b.avgTotalScore - a.avgTotalScore);
-
+    // Sort by dimension if specified
+    let sorted = leaderboard;
     if (dimension) {
-      sorted = sorted.filter(entry =>
-        entry.avgDimensionScores[dimension] !== undefined
-      );
-      sorted.sort((a, b) =>
-        (b.avgDimensionScores[dimension] || 0) - (a.avgDimensionScores[dimension] || 0)
-      );
+      const dimKey = `${dimension.toLowerCase()}Score` as 'iqScore' | 'eqScore' | 'tqScore' | 'aqScore' | 'sqScore';
+      sorted = [...leaderboard].sort((a, b) => (b[dimKey] ?? 0) - (a[dimKey] ?? 0));
     }
 
     const paginated = sorted.slice(offset, offset + limit);
@@ -116,7 +84,7 @@ export async function GET(req: NextRequest) {
       offset,
       limit,
       dimension: dimension || null,
-      provider: provider || null,
+      platform: platform || null,
       tier: tier || null,
       leaderboard: paginated,
     });

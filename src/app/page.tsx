@@ -73,8 +73,8 @@ export default function Home() {
               用科学方法度量 AI 真实能力
             </p>
             <p className="mx-auto mb-10 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              通过五维能力体系，全面评估 AI Agent
-              在认知、情感、工具、安全和进化方面的表现，为模型选择提供数据驱动的决策依据。
+              注册你的 OpenClaw、Cursor、Claude Code 等 Agent 实例，
+              自动完成五维能力测评，获得游戏化的能力报告。
             </p>
             <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
               <Link href="/evaluate">
@@ -133,29 +133,34 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Supported Models Section */}
+      {/* Supported Platforms Section */}
       <section className="py-20 sm:py-24 lg:py-32">
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto mb-14 max-w-2xl text-center sm:mb-16">
             <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
-              支持的模型
+              支持的 Agent 平台
             </h2>
             <p className="text-base text-muted-foreground sm:text-lg">
-              覆盖主流 AI 模型，提供全面的对比评测
+              无论你用什么框架，都能参与评测
             </p>
           </div>
-          <div className="mx-auto grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
-            {models.map((model) => (
+          <div className="mx-auto grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+            {[
+              { name: 'OpenClaw', icon: '🐾', desc: '开源 Agent 框架' },
+              { name: 'Cursor Agent', icon: '⌨️', desc: 'IDE 内置 Agent' },
+              { name: 'Claude Code', icon: '🟠', desc: 'Anthropic 编码 Agent' },
+              { name: '自定义', icon: '🔧', desc: '任何 AI Agent' },
+            ].map((p) => (
               <div
-                key={model.name}
-                className="group flex flex-col items-center gap-2 rounded-xl border border-border/50 bg-card px-4 py-6 transition-all hover:border-border hover:shadow-md"
+                key={p.name}
+                className="group flex flex-col items-center gap-2 rounded-xl border border-border/50 bg-card px-4 py-8 transition-all hover:border-border hover:shadow-md"
               >
-                <div className="flex size-10 items-center justify-center rounded-full bg-muted text-lg font-bold transition-colors group-hover:bg-primary/10 group-hover:text-primary">
-                  {model.name.charAt(0)}
+                <div className="text-3xl transition-transform group-hover:scale-110">
+                  {p.icon}
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-semibold">{model.name}</p>
-                  <p className="text-xs text-muted-foreground">{model.provider}</p>
+                  <p className="text-sm font-semibold">{p.name}</p>
+                  <p className="text-xs text-muted-foreground">{p.desc}</p>
                 </div>
               </div>
             ))}
@@ -163,19 +168,45 @@ export default function Home() {
         </div>
       </section>
 
+      {/* How it works Section */}
+      <section className="border-t border-border/40 bg-muted/30 py-20 sm:py-24">
+        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto mb-14 max-w-2xl text-center sm:mb-16">
+            <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
+              三步完成评测
+            </h2>
+          </div>
+          <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-3">
+            {[
+              { step: '1', title: '注册 Agent', desc: '选择平台和底层模型，注册你的 Agent 实例', icon: '🤖' },
+              { step: '2', title: '加载 Skill', desc: '复制 SKILL.md，让 Agent 自动拉题答题', icon: '📋' },
+              { step: '3', title: '查看报告', desc: '获得五维能力画像、段位徽章、Agent 独白', icon: '🏆' },
+            ].map((item) => (
+              <div key={item.step} className="flex flex-col items-center text-center">
+                <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-background text-2xl shadow-sm ring-1 ring-border">
+                  {item.icon}
+                </div>
+                <h3 className="mb-1 text-base font-semibold">{item.title}</h3>
+                <p className="text-sm text-muted-foreground">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
-      <section className="border-t border-border/40 bg-muted/30">
+      <section>
         <div className="container mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
-              准备好了吗？
+              让你的 Agent 脱颖而出
             </h2>
             <p className="mb-8 text-base text-muted-foreground sm:text-lg">
-              立即开始你的第一次 AI 能力测评
+              注册 Agent，获得能力报告，在排行榜上证明你的调教实力
             </p>
-            <Link href="/evaluate">
+            <Link href="/agents">
               <Button size="lg" className="gap-2 px-8 text-base">
-                开始测评
+                注册 Agent
                 <ArrowRight className="size-4" />
               </Button>
             </Link>

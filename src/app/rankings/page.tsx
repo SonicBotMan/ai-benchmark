@@ -1,217 +1,75 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import {
-  Radar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  ResponsiveContainer,
-  Legend,
-  Tooltip,
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  ResponsiveContainer, Legend,
 } from 'recharts'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-
-interface ModelScore {
-  id: string
-  name: string
-  provider: string
-  totalScore: number
-  iq: number
-  eq: number
-  tq: number
-  aq: number
-  sq: number
-  evaluations: number
-}
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Trophy, ChevronRight, ChevronLeft, Bot, Award, Target, Star,
+} from 'lucide-react'
+import { LEVEL_LABELS, DIMENSION_LABELS, PLATFORM_INFO } from '@/lib/types'
 
 interface LeaderboardEntry {
-  rank: number
-  model: ModelScore
+  evaluationId: string
+  sessionId: string
+  agent: { id: string; name: string; platform: string; modelBackbone: string } | null
+  model: { id: string; name: string; provider: string }
+  user: { name: string } | null
+  totalScore: number
+  levelRating: string
+  tags: string[]
+  iqScore: number
+  eqScore: number
+  tqScore: number
+  aqScore: number
+  sqScore: number
+  tier: string
+  completedAt: string | null
 }
 
-const DIMENSIONS = [
+const PLATFORMS = [
   { key: 'all', label: '全部' },
-  { key: 'iq', label: 'IQ 认知智能' },
-  { key: 'eq', label: 'EQ 情感智能' },
-  { key: 'tq', label: 'TQ 工具智能' },
-  { key: 'aq', label: 'AQ 安全智能' },
-  { key: 'sq', label: 'SQ 进化智能' },
-] as const
+  { key: 'openclaw', label: 'OpenClaw', icon: '🐾' },
+  { key: 'cursor', label: 'Cursor', icon: '⌨️' },
+  { key: 'claude-code', label: 'Claude Code', icon: '🟠' },
+  { key: 'custom', label: '自定义', icon: '🔧' },
+]
 
-const PROVIDERS = [
-  { key: 'all', label: '全部' },
-  { key: 'OpenAI', label: 'OpenAI' },
-  { key: 'Anthropic', label: 'Anthropic' },
-  { key: 'Google', label: 'Google' },
-  { key: 'Meta', label: 'Meta' },
-  { key: 'Mistral', label: 'Mistral' },
-] as const
+const DIMS = [
+  { key: 'all', label: '总分' },
+  { key: 'IQ', label: 'IQ' },
+  { key: 'EQ', label: 'EQ' },
+  { key: 'TQ', label: 'TQ' },
+  { key: 'AQ', label: 'AQ' },
+  { key: 'SQ', label: 'SQ' },
+]
+
+const LEVEL_STYLES: Record<string, string> = {
+  bronze: 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300',
+  silver: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+  gold: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300',
+  platinum: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300',
+  diamond: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
+  master: 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300',
+}
+
+const LEVEL_EMOJI: Record<string, string> = {
+  bronze: '🥉', silver: '🥈', gold: '🥇', platinum: '💎', diamond: '💠', master: '👑',
+}
 
 const RADAR_COLORS = ['#6366f1', '#f59e0b', '#10b981']
 
-const MOCK_DATA: ModelScore[] = [
-  {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
-    provider: 'OpenAI',
-    totalScore: 912,
-    iq: 935,
-    eq: 890,
-    tq: 928,
-    aq: 905,
-    sq: 902,
-    evaluations: 15420,
-  },
-  {
-    id: 'claude-3-5-sonnet',
-    name: 'Claude 3.5 Sonnet',
-    provider: 'Anthropic',
-    totalScore: 898,
-    iq: 910,
-    eq: 925,
-    tq: 880,
-    aq: 930,
-    sq: 845,
-    evaluations: 12870,
-  },
-  {
-    id: 'gemini-1-5-pro',
-    name: 'Gemini 1.5 Pro',
-    provider: 'Google',
-    totalScore: 876,
-    iq: 895,
-    eq: 840,
-    tq: 910,
-    aq: 870,
-    sq: 865,
-    evaluations: 11350,
-  },
-  {
-    id: 'llama-3-1-405b',
-    name: 'Llama 3.1 405B',
-    provider: 'Meta',
-    totalScore: 834,
-    iq: 860,
-    eq: 790,
-    tq: 845,
-    aq: 820,
-    sq: 855,
-    evaluations: 9840,
-  },
-  {
-    id: 'mistral-large',
-    name: 'Mistral Large',
-    provider: 'Mistral',
-    totalScore: 798,
-    iq: 815,
-    eq: 760,
-    tq: 820,
-    aq: 785,
-    sq: 810,
-    evaluations: 7620,
-  },
-]
-
-function getMedalEmoji(rank: number): string {
-  switch (rank) {
-    case 1:
-      return '🥇'
-    case 2:
-      return '🥈'
-    case 3:
-      return '🥉'
-    default:
-      return ''
-  }
-}
-
-function getScoreBadgeVariant(score: number): 'default' | 'secondary' | 'destructive' | 'outline' {
-  if (score >= 800) return 'default'
-  if (score >= 600) return 'secondary'
-  return 'destructive'
-}
-
-function getScoreColor(score: number): string {
-  if (score >= 800) return 'bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/25 dark:text-emerald-400 border-emerald-500/30'
-  if (score >= 600) return 'bg-amber-500/15 text-amber-700 dark:bg-amber-500/25 dark:text-amber-400 border-amber-500/30'
-  return 'bg-red-500/15 text-red-700 dark:bg-red-500/25 dark:text-red-400 border-red-500/30'
-}
-
-function getProviderColor(provider: string): string {
-  const colors: Record<string, string> = {
-    OpenAI: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20',
-    Anthropic: 'bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20',
-    Google: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20',
-    Meta: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/20',
-    Mistral: 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20',
-  }
-  return colors[provider] ?? 'bg-muted text-muted-foreground border-border'
-}
-
-function ScoreBadge({ score }: { score: number }) {
-  return (
-    <span className={`inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors ${getScoreColor(score)}`}>
-      {score}
-    </span>
-  )
-}
-
-function ProviderBadge({ provider }: { provider: string }) {
-  return (
-    <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium ${getProviderColor(provider)}`}>
-      {provider}
-    </span>
-  )
-}
-
-function TableSkeleton() {
-  return (
-    <div className="space-y-3">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-4 py-3">
-          <Skeleton className="h-5 w-10" />
-          <Skeleton className="h-5 w-32" />
-          <Skeleton className="h-5 w-16" />
-          <Skeleton className="h-5 w-12" />
-          <Skeleton className="h-5 w-12" />
-          <Skeleton className="h-5 w-12" />
-          <Skeleton className="h-5 w-12" />
-          <Skeleton className="h-5 w-12" />
-          <Skeleton className="h-5 w-16" />
-        </div>
-      ))}
-    </div>
-  )
-}
-
 export default function RankingsPage() {
-  const [data, setData] = useState<ModelScore[]>([])
+  const [data, setData] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
-  const [dimension, setDimension] = useState<string>('all')
-  const [provider, setProvider] = useState<string>('all')
-  const [selectedModels, setSelectedModels] = useState<string[]>([])
-  const [isMockData, setIsMockData] = useState(false)
+  const [platform, setPlatform] = useState('all')
+  const [dimension, setDimension] = useState('all')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [page, setPage] = useState(1)
   const pageSize = 20
 
@@ -219,80 +77,58 @@ export default function RankingsPage() {
     async function fetchData() {
       setLoading(true)
       try {
-        const res = await fetch('/api/v1/leaderboard')
+        const params = new URLSearchParams()
+        if (platform !== 'all') params.set('platform', platform)
+        if (dimension !== 'all') params.set('dimension', dimension)
+        params.set('limit', '100')
+        const res = await fetch(`/api/v1/leaderboard?${params}`)
         if (!res.ok) throw new Error('API unavailable')
         const json = await res.json()
-        const raw = json.leaderboard ?? json.data ?? json
-        const transformed: ModelScore[] = (Array.isArray(raw) ? raw : []).map(
-          (entry: Record<string, unknown>) => {
-            const model = entry.model as { id: string; name: string; provider: string } | undefined
-            const dims = entry.avgDimensionScores as Record<string, number> | undefined
-            return {
-              id: String(model?.id ?? entry.id ?? Math.random()),
-              name: String(model?.name ?? entry.name ?? 'Unknown'),
-              provider: String(model?.provider ?? entry.provider ?? 'Unknown'),
-              totalScore: Number(entry.avgTotalScore ?? entry.totalScore ?? 0),
-              iq: Number(dims?.IQ ?? entry.iq ?? 0),
-              eq: Number(dims?.EQ ?? entry.eq ?? 0),
-              tq: Number(dims?.TQ ?? entry.tq ?? 0),
-              aq: Number(dims?.AQ ?? entry.aq ?? 0),
-              sq: Number(dims?.SQ ?? entry.sq ?? 0),
-              evaluations: Number(entry.evaluationCount ?? entry.evaluations ?? 0),
-            }
-          }
-        )
-        if (transformed.length === 0) throw new Error('Empty data')
-        setData(transformed)
-        setIsMockData(false)
+        setData(json.leaderboard ?? [])
       } catch {
-        setData(MOCK_DATA)
-        setIsMockData(true)
+        setData([])
       } finally {
         setLoading(false)
       }
     }
     fetchData()
-  }, [])
+  }, [platform, dimension])
 
-  const filteredData = data.filter((m) => {
-    if (provider !== 'all' && m.provider !== provider) return false
-    return true
-  })
+  const getScore = (entry: LeaderboardEntry): number => {
+    if (dimension === 'all') return entry.totalScore
+    const key = `${dimension.toLowerCase()}Score` as 'iqScore' | 'eqScore' | 'tqScore' | 'aqScore' | 'sqScore'
+    return entry[key] ?? 0
+  }
 
-  const getScoreForDimension = useCallback(
-    (model: ModelScore): number => {
-      if (dimension === 'all') return model.totalScore
-      return model[dimension as keyof Pick<ModelScore, 'iq' | 'eq' | 'tq' | 'aq' | 'sq'>]
-    },
-    [dimension]
-  )
-
-  const sorted = [...filteredData].sort((a, b) => getScoreForDimension(b) - getScoreForDimension(a))
+  const sorted = [...data].sort((a, b) => getScore(b) - getScore(a))
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
   const paginated = sorted.slice((page - 1) * pageSize, page * pageSize)
 
-  const toggleModel = (id: string) => {
-    setSelectedModels((prev) => {
-      if (prev.includes(id)) return prev.filter((m) => m !== id)
+  const toggleEntry = (id: string) => {
+    setSelectedIds(prev => {
+      if (prev.includes(id)) return prev.filter(m => m !== id)
       if (prev.length >= 3) return prev
       return [...prev, id]
     })
   }
 
-  const radarData = DIMENSIONS.filter((d) => d.key !== 'all').map((dim) => {
-    const point: Record<string, string | number> = { dimension: dim.label }
-    selectedModels.forEach((id) => {
-      const model = data.find((m) => m.id === id)
-      if (model) {
-        point[model.name] = model[dim.key as keyof Pick<ModelScore, 'iq' | 'eq' | 'tq' | 'aq' | 'sq'>]
-      }
-    })
-    return point
-  })
+  const selectedEntries = selectedIds.map(id => data.find(e => e.evaluationId === id)).filter(Boolean) as LeaderboardEntry[]
 
-  const selectedModelObjects = selectedModels
-    .map((id) => data.find((m) => m.id === id))
-    .filter(Boolean) as ModelScore[]
+  const radarData = [
+    { dimension: 'IQ', fullMark: 1000 },
+    { dimension: 'EQ', fullMark: 1000 },
+    { dimension: 'TQ', fullMark: 1000 },
+    { dimension: 'AQ', fullMark: 1000 },
+    { dimension: 'SQ', fullMark: 1000 },
+  ].map(point => {
+    const result: Record<string, unknown> = { dimension: point.dimension, fullMark: point.fullMark }
+    selectedEntries.forEach(entry => {
+      const name = entry.agent?.name ?? entry.model.name
+      const dimKey = `${point.dimension.toLowerCase()}Score` as 'iqScore' | 'eqScore' | 'tqScore' | 'aqScore' | 'sqScore'
+      result[name] = entry[dimKey] ?? 0
+    })
+    return result
+  })
 
   return (
     <div className="min-h-screen bg-background">
@@ -300,246 +136,211 @@ export default function RankingsPage() {
         {/* Header */}
         <div className="mb-10">
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            排行榜
+            Agent 排行榜
           </h1>
           <p className="mt-2 text-base text-muted-foreground">
-            AI 模型能力综合排名
+            每一条记录 = 一个用户提交的 Agent 实例评测
           </p>
-          {isMockData && (
-            <div className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-600 dark:text-amber-400">
-              当前显示示例数据，数据库中暂无测评记录
-            </div>
-          )}
         </div>
 
         {/* Filters */}
         <div className="mb-8 flex flex-wrap items-center gap-4 rounded-xl border bg-card p-4 shadow-sm">
+          {/* Platform filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">平台</span>
+            <div className="flex gap-1">
+              {PLATFORMS.map(p => (
+                <button
+                  key={p.key}
+                  onClick={() => { setPlatform(p.key); setPage(1) }}
+                  className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                    platform === p.key ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  {p.icon ? `${p.icon} ` : ''}{p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Dimension filter */}
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-muted-foreground">维度</span>
-            <Select value={dimension} onValueChange={(v) => v !== null && setDimension(v)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="选择维度" />
-              </SelectTrigger>
-              <SelectContent>
-                {DIMENSIONS.map((d) => (
-                  <SelectItem key={d.key} value={d.key}>
-                    {d.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-1">
+              {DIMS.map(d => (
+                <button
+                  key={d.key}
+                  onClick={() => { setDimension(d.key); setPage(1) }}
+                  className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                    dimension === d.key ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">厂商</span>
-            <Select value={provider} onValueChange={(v) => v !== null && setProvider(v)}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="选择厂商" />
-              </SelectTrigger>
-              <SelectContent>
-                {PROVIDERS.map((p) => (
-                  <SelectItem key={p.key} value={p.key}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {selectedModels.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelectedModels([])}
-              className="ml-auto text-xs text-muted-foreground"
-            >
-              清除对比 ({selectedModels.length})
-            </Button>
-          )}
         </div>
 
         {/* Leaderboard Table */}
-        <Card className="overflow-hidden">
-          <CardContent className="p-0">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Trophy className="size-5 text-amber-500" />
+              排行榜
+              <span className="ml-auto text-sm font-normal text-muted-foreground">
+                共 {sorted.length} 条记录
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             {loading ? (
-              <div className="p-6">
-                <TableSkeleton />
+              <div className="space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : sorted.length === 0 ? (
+              <div className="py-16 text-center">
+                <Bot className="mx-auto mb-4 size-12 text-muted-foreground/20" />
+                <p className="text-muted-foreground">暂无评测数据</p>
+                <Link href="/agents">
+                  <Button size="sm" className="mt-4">注册 Agent 开始评测</Button>
+                </Link>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="w-16 text-center font-semibold">排名</TableHead>
-                    <TableHead className="font-semibold">模型</TableHead>
-                    <TableHead className="text-center font-semibold">总分</TableHead>
-                    <TableHead className="text-center font-semibold">IQ</TableHead>
-                    <TableHead className="text-center font-semibold">EQ</TableHead>
-                    <TableHead className="text-center font-semibold">TQ</TableHead>
-                    <TableHead className="text-center font-semibold">AQ</TableHead>
-                    <TableHead className="text-center font-semibold">SQ</TableHead>
-                    <TableHead className="text-center font-semibold">测评次数</TableHead>
-                    <TableHead className="w-10" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginated.map((model) => {
-                    const rank = sorted.indexOf(model) + 1
-                    const isSelected = selectedModels.includes(model.id)
-                    return (
-                      <TableRow
-                        key={model.id}
-                        className={`cursor-pointer transition-colors hover:bg-muted/40 ${isSelected ? 'bg-primary/5' : ''}`}
-                        onClick={() => toggleModel(model.id)}
-                      >
-                        <TableCell className="text-center">
-                          <span className="text-lg">{getMedalEmoji(rank)}</span>
-                          {!getMedalEmoji(rank) && (
-                            <span className="text-sm font-semibold text-muted-foreground">{rank}</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-1.5">
-                            <span className="font-semibold text-foreground">{model.name}</span>
-                            <ProviderBadge provider={model.provider} />
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <ScoreBadge score={getScoreForDimension(model)} />
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <ScoreBadge score={model.iq} />
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <ScoreBadge score={model.eq} />
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <ScoreBadge score={model.tq} />
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <ScoreBadge score={model.aq} />
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <ScoreBadge score={model.sq} />
-                        </TableCell>
-                        <TableCell className="text-center text-sm text-muted-foreground">
-                          {model.evaluations.toLocaleString()}
-                        </TableCell>
-                        <TableCell>
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => toggleModel(model.id)}
-                            onClick={(e) => e.stopPropagation()}
-                            aria-label={`对比 ${model.name}`}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="pb-3 pl-2 font-medium text-muted-foreground w-12">排名</th>
+                        <th className="pb-3 pl-2 font-medium text-muted-foreground">Agent</th>
+                        <th className="pb-3 pl-2 font-medium text-muted-foreground hidden sm:table-cell">用户</th>
+                        <th className="pb-3 pl-2 font-medium text-muted-foreground text-center">分数</th>
+                        <th className="pb-3 pl-2 font-medium text-muted-foreground text-center hidden md:table-cell">段位</th>
+                        <th className="pb-3 pl-2 font-medium text-muted-foreground hidden lg:table-cell">标签</th>
+                        <th className="pb-3 pl-2 font-medium text-muted-foreground text-right">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginated.map((entry, idx) => {
+                        const rank = sorted.indexOf(entry) + 1
+                        const score = getScore(entry)
+                        const isSelected = selectedIds.includes(entry.evaluationId)
+                        const pinfo = PLATFORM_INFO[entry.agent?.platform as keyof typeof PLATFORM_INFO]
+                        const level = LEVEL_LABELS[entry.levelRating as keyof typeof LEVEL_LABELS]
+
+                        return (
+                          <tr key={entry.evaluationId} className={`border-b last:border-0 transition-colors ${isSelected ? 'bg-primary/5' : 'hover:bg-muted/30'}`}>
+                            <td className="py-3 pl-2">
+                              {rank <= 3 ? (
+                                <span className="text-lg">{['🥇', '🥈', '🥉'][rank - 1]}</span>
+                              ) : (
+                                <span className="font-mono text-xs text-muted-foreground">#{rank}</span>
+                              )}
+                            </td>
+                            <td className="py-3 pl-2">
+                              <div>
+                                <span className="font-medium">{entry.agent?.name ?? entry.model.name}</span>
+                                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <span>{pinfo?.icon ?? '🤖'}</span>
+                                  {pinfo?.label ?? entry.model.provider}
+                                  {' · '}
+                                  {entry.agent?.modelBackbone ?? entry.model.name}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3 pl-2 hidden sm:table-cell text-muted-foreground text-xs">
+                              {entry.user?.name ?? '匿名'}
+                            </td>
+                            <td className="py-3 pl-2 text-center">
+                              <span className="font-mono font-bold">{score}</span>
+                            </td>
+                            <td className="py-3 pl-2 text-center hidden md:table-cell">
+                              {level && (
+                                <span className={`inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-xs font-medium ${LEVEL_STYLES[entry.levelRating] ?? ''}`}>
+                                  {LEVEL_EMOJI[entry.levelRating] ?? ''} {level.cn}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 pl-2 hidden lg:table-cell">
+                              <div className="flex flex-wrap gap-1">
+                                {(entry.tags ?? []).slice(0, 2).map((tag, i) => (
+                                  <span key={i} className="rounded bg-muted px-1.5 py-0.5 text-[10px]">{tag}</span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="py-3 pl-2 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => toggleEntry(entry.evaluationId)}
+                                  className={`rounded px-2 py-1 text-xs transition-colors ${
+                                    isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                  }`}
+                                >
+                                  {isSelected ? '已选' : '对比'}
+                                </button>
+                                <Link href={`/reports/${entry.evaluationId}`}>
+                                  <Button variant="ghost" size="sm" className="gap-1 text-xs">
+                                    报告 <ChevronRight className="size-3" />
+                                  </Button>
+                                </Link>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="mt-4 flex items-center justify-center gap-2">
+                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                      <ChevronLeft className="size-4" />
+                    </Button>
+                    <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
+                    <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                      <ChevronRight className="size-4" />
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-            >
-              上一页
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              {page} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              下一页
-            </Button>
-          </div>
-        )}
-
         {/* Radar Chart Comparison */}
-        {selectedModels.length >= 2 && (
+        {selectedEntries.length >= 2 && (
           <Card className="mt-10">
             <CardHeader>
-              <CardTitle className="text-lg font-semibold">模型对比</CardTitle>
+              <CardTitle className="text-lg font-semibold">Agent 对比</CardTitle>
               <p className="text-sm text-muted-foreground">
-                已选择 {selectedModels.length} 个模型进行多维对比
+                已选择 {selectedEntries.length} 个 Agent 实例进行五维对比
               </p>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap items-center gap-3 mb-6">
-                {selectedModelObjects.map((m, i) => (
-                  <Badge
-                    key={m.id}
-                    variant="outline"
-                    className="gap-1.5"
-                    style={{ borderColor: RADAR_COLORS[i], color: RADAR_COLORS[i] }}
-                  >
-                    <span
-                      className="inline-block h-2 w-2 rounded-full"
-                      style={{ backgroundColor: RADAR_COLORS[i] }}
+              <ResponsiveContainer width="100%" height={400}>
+                <RadarChart data={radarData}>
+                  <PolarGrid stroke="hsl(var(--border))" />
+                  <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
+                  <PolarRadiusAxis angle={90} domain={[0, 1000]} tick={false} axisLine={false} />
+                  {selectedEntries.map((entry, i) => (
+                    <Radar
+                      key={entry.evaluationId}
+                      name={entry.agent?.name ?? entry.model.name}
+                      dataKey={entry.agent?.name ?? entry.model.name}
+                      stroke={RADAR_COLORS[i]}
+                      fill={RADAR_COLORS[i]}
+                      fillOpacity={0.1}
+                      strokeWidth={2}
                     />
-                    {m.name}
-                    <button
-                      className="ml-1 text-xs opacity-60 hover:opacity-100"
-                      onClick={() => toggleModel(m.id)}
-                    >
-                      ✕
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-              <div className="h-[400px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
-                    <PolarGrid stroke="hsl(var(--border))" />
-                    <PolarAngleAxis
-                      dataKey="dimension"
-                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 13 }}
-                    />
-                    <PolarRadiusAxis
-                      angle={90}
-                      domain={[600, 1000]}
-                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
-                    />
-                    {selectedModelObjects.map((model, i) => (
-                      <Radar
-                        key={model.id}
-                        name={model.name}
-                        dataKey={model.name}
-                        stroke={RADAR_COLORS[i]}
-                        fill={RADAR_COLORS[i]}
-                        fillOpacity={0.15}
-                        strokeWidth={2}
-                      />
-                    ))}
-                    <Legend
-                      wrapperStyle={{ paddingTop: 20 }}
-                      formatter={(value) => (
-                        <span className="text-sm text-foreground">{value}</span>
-                      )}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--popover))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: 8,
-                        color: 'hsl(var(--popover-foreground))',
-                        fontSize: 13,
-                      }}
-                    />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
+                  ))}
+                  <Legend />
+                </RadarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         )}
