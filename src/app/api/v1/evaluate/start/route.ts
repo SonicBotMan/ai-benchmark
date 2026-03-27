@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getQuestionsForTier, getQuestionsByDimension } from '@/lib/engine/question-bank';
+import { getQuestionsForTier } from '@/lib/engine/question-bank';
 import { encrypt } from '@/lib/engine/encrypt';
-import { Tier, SubDimension } from '@/lib/types';
+import { Tier } from '@/lib/types';
 import crypto from 'crypto';
 
 // Map parent dimensions to sub-dimension question categories
@@ -71,37 +71,59 @@ export async function POST(req: NextRequest) {
     }
 
     // Get questions - either all for tier or filtered by dimensions
-    let questions: Array<{ id: string; prompt: string; dimension: string; caseType: string; difficulty: string; expectedAnswerType: string; tier?: string }> = [];
-    if (requestedDimensions && requestedDimensions.length > 0) {
-      // Single-dimension mode: get questions only from specified dimensions
-      const allDimQuestions = [];
-      const countPerDim = Math.ceil(50 / requestedDimensions.length);
+    let selectedQuestions: Array<{
+      id: string; prompt: string; dimension: string; caseType: string;
+      difficulty: string; expectedAnswerType: string; tier?: string;
+    }> = [];
 
+    if (requestedDimensions && requestedDimensions.length > 0) {
+      // Single-dimension mode: get questions only from specified dimensions from DB
+      const subDims: string[] = [];
       for (const dim of requestedDimensions) {
-        const subDims = PARENT_TO_SUBS[dim.toUpperCase()] ?? [dim.toLowerCase()];
-        for (const sub of subDims) {
-          const dimQuestions = getQuestionsByDimension(sub as SubDimension, countPerDim);
-          allDimQuestions.push(...dimQuestions);
-        }
+        const subs = PARENT_TO_SUBS[dim.toUpperCase()] ?? [dim.toLowerCase()];
+        subDims.push(...subs);
       }
 
-      // Filter by tier
-      questions = allDimQuestions.filter(q => {
-        if (tier === 'basic') return q.tier === 'basic';
-        if (tier === 'standard') return q.tier === 'basic' || q.tier === 'standard';
-        return true;
-      }).sort(() => Math.random() - 0.5).slice(0, Math.min(questions.length, 50));
+      const tierFilter: Record<string, unknown> = {};
+      if (tier === 'basic') tierFilter.tier = 'basic';
+      else if (tier === 'standard') tierFilter.tier = { in: ['basic', 'standard'] };
+
+      const dbQuestions = await prisma.question.findMany({
+        where: {
+          dimension: { in: subDims },
+          ...tierFilter,
+        },
+      });
+
+      // Shuffle and limit
+      const shuffled = dbQuestions.sort(() => Math.random() - 0.5);
+      selectedQuestions = shuffled.slice(0, 50).map(q => ({
+        id: q.id,
+        prompt: q.prompt,
+        dimension: q.dimension,
+        caseType: q.caseType,
+        difficulty: q.difficulty,
+        expectedAnswerType: q.expectedAnswerType,
+      }));
     } else {
-      questions = getQuestionsForTier(tier);
+      const questions = getQuestionsForTier(tier);
+      selectedQuestions = questions.map(q => ({
+        id: q.id,
+        prompt: q.prompt,
+        dimension: q.dimension,
+        caseType: q.caseType,
+        difficulty: q.difficulty,
+        expectedAnswerType: q.expectedAnswerType,
+      }));
     }
 
-    if (questions.length === 0) {
+    if (selectedQuestions.length === 0) {
       return NextResponse.json({ error: 'No questions available for the selected dimensions' }, { status: 400 });
     }
 
     const sessionId = crypto.randomBytes(32).toString('hex');
     const encryptionKey = process.env.ENCRYPTION_KEY || 'default-encryption-key';
-    const encryptedQuestions = encrypt(JSON.stringify(questions), encryptionKey);
+    const encryptedQuestions = encrypt(JSON.stringify(selectedQuestions), encryptionKey);
 
     const evaluation = await prisma.evaluation.create({
       data: {
@@ -119,17 +141,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       sessionId: evaluation.sessionId,
       tier,
-      questionCount: questions.length,
+      questionCount: selectedQuestions.length,
       dimensions: requestedDimensions ?? ['all'],
       // Return plain questions so the agent can answer directly
-      questions: questions.map(q => ({
-        id: q.id,
-        prompt: q.prompt,
-        dimension: q.dimension,
-        caseType: q.caseType,
-        difficulty: q.difficulty,
-        expectedAnswerType: q.expectedAnswerType,
-      })),
+      questions: selectedQuestions,
     });
   } catch (error) {
     console.error('Evaluate start error:', error);
