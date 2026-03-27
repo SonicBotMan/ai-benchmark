@@ -104,6 +104,9 @@ export default function EvaluateSessionPage() {
   const [lastResult, setLastResult] = useState<SubmitResult | null>(null);
   const [results, setResults] = useState<SubmitResult[]>([]);
   const [finishResult, setFinishResult] = useState<FinishResult | null>(null);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackComment, setFeedbackComment] = useState('');
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
   // Load session status and questions
   useEffect(() => {
@@ -290,6 +293,55 @@ export default function EvaluateSessionPage() {
             <Button onClick={() => router.push('/evaluate')} className="gap-2">
               <RefreshCw className="size-4" /> 再次评测
             </Button>
+          </div>
+
+          {/* Feedback */}
+          <div className="mt-8 rounded-xl border bg-card p-6 text-left">
+            <h3 className="mb-3 font-semibold text-sm">📝 评测反馈</h3>
+            {feedbackSubmitted ? (
+              <p className="text-sm text-emerald-600 dark:text-emerald-400">感谢你的反馈！🙏</p>
+            ) : (
+              <div>
+                <p className="mb-3 text-xs text-muted-foreground">你觉得这个评测结果准确吗？</p>
+                <div className="mb-4 flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => setFeedbackRating(star)}
+                      className={`text-2xl transition-colors ${star <= feedbackRating ? 'text-amber-400' : 'text-muted-foreground/30'}`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  className="mb-3 w-full rounded-lg border bg-background p-3 text-xs min-h-[60px]"
+                  placeholder="有什么想说的？（可选）"
+                  value={feedbackComment}
+                  onChange={(e) => setFeedbackComment(e.target.value)}
+                />
+                <Button
+                  size="sm"
+                  disabled={feedbackRating === 0}
+                  onClick={async () => {
+                    try {
+                      await fetch('/api/feedback', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          evaluationId: finishResult?.sessionId,
+                          rating: feedbackRating,
+                          comment: feedbackComment,
+                        }),
+                      });
+                      setFeedbackSubmitted(true);
+                    } catch { /* ignore */ }
+                  }}
+                >
+                  提交反馈
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

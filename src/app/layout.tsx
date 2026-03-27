@@ -44,6 +44,7 @@ function Navbar() {
     { href: '/rankings', label: '排行榜' },
     { href: '/benchmarks', label: '测评集' },
     { href: '/skill', label: '技能' },
+    { href: '/api-docs', label: 'API' },
   ];
 
   return (
