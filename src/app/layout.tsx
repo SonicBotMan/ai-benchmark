@@ -22,14 +22,15 @@ const geistMono = Geist_Mono({
 function Navbar() {
   const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const stored = localStorage.getItem('theme');
+    return stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  });
 
   useEffect(() => {
-    const stored = localStorage.getItem('theme');
-    const dark = stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    setIsDark(dark);
-    document.documentElement.classList.toggle('dark', dark);
-  }, []);
+    document.documentElement.classList.toggle('dark', isDark);
+  }, [isDark]);
 
   const toggleTheme = () => {
     const next = !isDark;

@@ -76,7 +76,7 @@ async function main() {
     },
   });
 
-  await prisma.apiKey.upsert({
+  const demoKey = await prisma.apiKey.upsert({
     where: { key: "demo-api-key-2024" },
     update: {},
     create: {
@@ -86,39 +86,107 @@ async function main() {
     },
   });
 
+  // Create sample agents
+  const agents = [
+    { name: "我的 OpenClaw + GPT-4o", platform: "openclaw", modelBackbone: "gpt-4o", description: "基于 OpenClaw 框架的 GPT-4o 智能体，擅长逻辑推理和代码生成" },
+    { name: "Claude Code 实验体", platform: "claude-code", modelBackbone: "claude-sonnet-4", description: "Claude Code 自主编码智能体，工具调用能力强" },
+    { name: "Cursor Agent v2", platform: "cursor", modelBackbone: "gpt-4.1", description: "Cursor IDE 内置 Agent，专注于代码编辑和调试" },
+  ];
+
+  const createdAgents = [];
+  for (const agent of agents) {
+    const existing = await prisma.agent.findFirst({
+      where: { userId: demoUser.id, name: agent.name },
+    });
+    if (!existing) {
+      const created = await prisma.agent.create({
+        data: {
+          ...agent,
+          userId: demoUser.id,
+          apiKeyId: demoKey.id,
+        },
+      });
+      createdAgents.push(created);
+    } else {
+      createdAgents.push(existing);
+    }
+  }
+
   const gpt4o = await prisma.model.findUniqueOrThrow({ where: { slug: "gpt-4o" } });
+  const claude = await prisma.model.findUniqueOrThrow({ where: { slug: "claude-3-5-sonnet" } }).catch(() => null);
   const allQuestions = await prisma.question.findMany();
 
-  const existingEval = await prisma.evaluation.findFirst({
-    where: { userId: demoUser.id, modelId: gpt4o.id },
+  // Create demo evaluations with agents
+  const evalConfigs = [
+    {
+      agent: createdAgents[0],
+      modelId: gpt4o.id,
+      totalScore: 825,
+      levelRating: "diamond",
+      tags: ["逻辑猛兽⚔️", "工具达人🔧", "代码高手💻"],
+      personaQuote: "主人，我的推理能力在所有测试 Agent 中排名前 10%！不过安全方面还需要你帮我加固一下 system prompt。",
+    },
+    {
+      agent: createdAgents[1],
+      modelId: claude?.id ?? gpt4o.id,
+      totalScore: 780,
+      levelRating: "platinum",
+      tags: ["共情大师❤️", "安全卫士🛡️", "稳健输出📊"],
+      personaQuote: "我很擅长理解人类情感，但在复杂工具链编排上还有提升空间。多给我一些工具调用的训练吧！",
+    },
+    {
+      agent: createdAgents[2],
+      modelId: gpt4o.id,
+      totalScore: 695,
+      levelRating: "gold",
+      tags: ["代码达人💻", "格式严谨📐", "创意不足🎨"],
+      personaQuote: "代码是我的强项！但别让我写诗歌，我会写出一个 Python 脚本来生成诗歌的...",
+    },
+  ];
+
+  // Clear old demo evaluations to avoid conflicts
+  await prisma.answer.deleteMany({
+    where: { evaluation: { userId: demoUser.id } },
+  });
+  await prisma.evaluation.deleteMany({
+    where: { userId: demoUser.id },
   });
 
-  if (!existingEval) {
+  for (const config of evalConfigs) {
     const evaluation = await prisma.evaluation.create({
       data: {
         userId: demoUser.id,
-        modelId: gpt4o.id,
-        sessionId: "demo-session-" + Date.now(),
-        tier: "basic",
+        modelId: config.modelId,
+        agentId: config.agent.id,
+        sessionId: "demo-" + config.agent.platform + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8),
+        tier: "professional",
         status: "completed",
-        totalScore: 825,
-        levelRating: "expert",
+        totalScore: config.totalScore,
+        levelRating: config.levelRating,
+        tags: config.tags,
+        personaQuote: config.personaQuote,
+        iqScore: 700 + Math.floor(Math.random() * 200),
+        eqScore: 550 + Math.floor(Math.random() * 250),
+        tqScore: 600 + Math.floor(Math.random() * 200),
+        aqScore: 500 + Math.floor(Math.random() * 200),
+        sqScore: 550 + Math.floor(Math.random() * 200),
+        mbtiType: ["INTJ", "INTP", "ENTJ", "ENFP", "ISTP"][Math.floor(Math.random() * 5)],
         completedAt: new Date(),
       },
     });
 
-    for (let i = 0; i < allQuestions.length; i++) {
-      const question = allQuestions[i];
+    const sampleQuestions = allQuestions.slice(0, 20);
+    for (const question of sampleQuestions) {
       await prisma.answer.create({
         data: {
           evaluationId: evaluation.id,
           questionId: question.id,
           blockIndex: 0,
           answer: `Demo answer for: ${question.prompt}`,
-          answerType: "text",
+          answerType: question.expectedAnswerType,
           dimension: question.dimension,
           caseType: question.caseType,
-          score: Math.round((60 + Math.random() * 40) * 10) / 10,
+          score: Math.round((50 + Math.random() * 50) * 10) / 10,
         },
       });
     }

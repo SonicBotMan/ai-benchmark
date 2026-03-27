@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts    Account[]
+  sessions    Session[]
+  evaluations Evaluation[]
+  apiKeys     ApiKey[]
+  agents      Agent[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Agent {
+  id           String   @id @default(cuid())
+  name         String
+  platform     String   // openclaw, cursor, claude-code, custom
+  modelBackbone String  // claude-sonnet-4, gpt-4o, etc.
+  userId       String
+  apiKeyId     String?  
+  description  String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiKey       ApiKey?      @relation(fields: [apiKeyId], references: [id])
+  evaluations  Evaluation[]
+
+  @@index([userId])
+  @@index([platform])
+  @@index([modelBackbone])
+}
+
+model Model {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  provider    String
+  version     String
+  description String?
+  iconUrl     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  evaluations Evaluation[]
+
+  @@index([provider])
+  @@index([slug])
+}
+
+model Evaluation {
+  id          String    @id @default(cuid())
+  userId      String
+  modelId     String    // kept for backward compat
+  agentId     String?   // new: links to Agent instance
+  sessionId   String    @unique
+  tier        String    // basic, standard, professional
+  status      String    @default("pending") // pending, running, completed, failed
+  totalScore  Int?      // 0-1000
+  levelRating String?   // novice, proficient, expert, master
+  iqScore     Int?
+  eqScore     Int?
+  tqScore     Int?
+  aqScore     Int?
+  sqScore     Int?
+  mbtiType    String?
+  strengths   Json?
+  weaknesses  Json?
+  tags        String[]  // auto-generated capability tags ["逻辑猛兽", "工具达人"]
+  personaQuote String?  @db.Text // "agent wants to say to owner"
+  innateScores Json?    // baseline scores (no system prompt)
+  acquiredScores Json?  // improvement from system prompt/training
+  profileJson Json?
+  reportUrl   String?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  model   Model    @relation(fields: [modelId], references: [id])
+  agent   Agent?   @relation(fields: [agentId], references: [id])
+  answers Answer[]
+
+  @@index([modelId, totalScore(sort: Desc)])
+  @@index([agentId, totalScore(sort: Desc)])
+  @@index([status])
+  @@index([userId])
+  @@index([sessionId])
+}
+
+model Answer {
+  id           String   @id @default(cuid())
+  evaluationId String
+  blockIndex   Int
+  questionId   String
+  dimension    String   // reasoning, eq, code, safety, etc.
+  subDimension String?  // new: fine-grained sub-dimension
+  caseType     String   // qa, tool_use, trap
+  answerType   String   // text, tool_call, refusal
+  answer       String   @db.Text
+  score        Float?
+  scoreDetail  Json?
+  answeredAt   DateTime @default(now())
+
+  evaluation Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@index([evaluationId])
+  @@index([dimension])
+  @@index([questionId])
+}
+
+model Question {
+  id                 String   @id @default(cuid())
+  dimension          String   // reasoning, knowledge, math, etc.
+  subDimension       String?  // fine-grained sub-dimension
+  caseType           String   // qa, tool_use, trap, multi_turn, recovery
+  difficulty         String   // easy, medium, hard
+  tier               String   // basic, standard, professional
+  prompt             String   @db.Text
+  expectedAnswerType String   // text, tool_call, refusal
+  expectedKeywords   String[] // expected answer keywords
+  scoringConfig      Json
+  context            String?  @db.Text // context for multi_turn
+  tools              Json?    // available tools for tool_use
+  isLLMGenerated     Boolean  @default(false)
+  source             String   @default("curated") // curated, llm-generated
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([dimension])
+  @@index([caseType])
+  @@index([difficulty])
+  @@index([tier])
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  key        String    @unique
+  name       String
+  userId     String
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agents Agent[]
+
+  @@index([userId])
+  @@index([key])
+}

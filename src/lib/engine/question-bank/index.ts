@@ -17,7 +17,7 @@ import { reliabilityQuestions } from './sq/reliability';
 import { ambiguityHandlingQuestions } from './sq/ambiguity-handling';
 import { codeQuestions } from './iq/code';
 
-const ALL_QUESTIONS: Record<SubDimension, Question[]> = {
+const ALL_QUESTIONS: Record<string, Question[]> = {
   reasoning: reasoningQuestions,
   knowledge: knowledgeQuestions,
   math: mathQuestions,

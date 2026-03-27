@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import {
   Brain, Heart, Cpu, Shield, Sparkles, Play, Loader2, Zap,
-  ChevronRight, Clock, Hash, Key,
+  ChevronRight, Clock, Hash, Key, Bot,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -176,11 +176,11 @@ export default function EvaluatePage() {
         <div className="mb-8 text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
             <Play className="size-4" />
-            开始评测
+            Agent 评测
           </div>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">AI 能力评测</h1>
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">AI Agent 能力评测</h1>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-            选择模型和评测套餐，开始对 AI Agent 进行五维能力测评
+            注册你的 AI Agent，加载评测 Skill，让它自动完成五维能力测评
           </p>
         </div>
 
@@ -199,11 +199,31 @@ export default function EvaluatePage() {
           </Card>
         )}
 
-        {/* Step 1: Select Model */}
+        {/* Step 1: Register Agent */}
         <section className="mb-8">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
             <span className="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">1</span>
-            选择模型
+            注册 Agent
+          </h2>
+          <Card className="border-dashed">
+            <CardContent className="py-6">
+              <p className="text-sm text-muted-foreground mb-4">
+                首先注册你要评测的 AI Agent 实例。每个 Agent 对应一个具体的智能体配置（平台 + 底层模型）。
+              </p>
+              <Link href="/agents">
+                <Button className="gap-2">
+                  <Bot className="size-4" /> 前往注册 Agent
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Step 2: Select Agent (if they have any) */}
+        <section className="mb-8">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+            <span className="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">2</span>
+            选择要评测的 Agent
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {models.map((model) => (
@@ -217,7 +237,7 @@ export default function EvaluatePage() {
                 }`}
               >
                 <div className="mb-1 flex items-center gap-2">
-                  <span className="text-lg">{PROVIDER_ICONS[model.provider] || '⚪'}</span>
+                  <span className="text-lg">{PROVIDER_ICONS[model.provider] || '🤖'}</span>
                   <span className="font-semibold text-sm">{model.name}</span>
                 </div>
                 <p className="text-xs text-muted-foreground">{model.provider}</p>
@@ -225,7 +245,15 @@ export default function EvaluatePage() {
             ))}
           </div>
           {models.length === 0 && !loading && (
-            <p className="text-sm text-muted-foreground">暂无可选模型</p>
+            <Card className="border-dashed">
+              <CardContent className="py-8 text-center">
+                <Bot className="size-10 mx-auto mb-3 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground mb-3">还没有注册 Agent</p>
+                <Link href="/agents">
+                  <Button size="sm">去注册</Button>
+                </Link>
+              </CardContent>
+            </Card>
           )}
         </section>
 
