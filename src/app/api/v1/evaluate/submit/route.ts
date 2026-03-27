@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     }
 
     const scorer = new ScorerEngine();
-    const results: Array<{ questionId: string; score: number; detail: Record<string, unknown> }> = [];
+    const results: Array<{ questionId: string; score: number; grade?: string; tip?: string; detail: Record<string, unknown> }> = [];
 
     for (const submission of answers) {
       const question = getQuestionById(submission.questionId);
@@ -76,7 +76,9 @@ export async function POST(req: NextRequest) {
       results.push({
         questionId: submission.questionId,
         score: scoringResult.score,
-        detail: scoringResult.detail as Record<string, unknown>,
+        grade: scoringResult.grade,
+        tip: scoringResult.tip,
+        detail: scoringResult.detail,
       });
     }
 

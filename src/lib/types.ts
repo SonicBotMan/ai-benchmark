@@ -180,6 +180,8 @@ export interface ScoringConfig {
 
 export interface ScoreResult {
   score: number; // 0-1
+  grade?: 'A' | 'B' | 'C' | 'D';
+  tip?: string;
   detail: {
     keywordMatch?: number;
     reasoningBonus?: number;
