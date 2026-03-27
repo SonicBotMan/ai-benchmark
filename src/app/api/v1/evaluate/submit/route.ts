@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { ScorerEngine } from '@/lib/engine/scorer';
 import { getQuestionById } from '@/lib/engine/question-bank';
-import type { AnswerType } from '@/lib/types';
+import { scorerEngine, ScorerEngine } from '@/lib/engine/scorer';
+import type { AnswerType, Question } from '@/lib/types';
 
 interface AnswerSubmission {
   questionId: string;
@@ -47,7 +47,27 @@ export async function POST(req: NextRequest) {
     const results: Array<{ questionId: string; score: number; grade?: string; tip?: string; detail: Record<string, unknown> }> = [];
 
     for (const submission of answers) {
-      const question = getQuestionById(submission.questionId);
+      // Try in-memory question bank first, then fall back to database
+      let question = getQuestionById(submission.questionId);
+      if (!question) {
+        const dbQ = await prisma.question.findUnique({
+          where: { id: submission.questionId },
+        });
+        if (dbQ) {
+          question = {
+            id: dbQ.id,
+            dimension: dbQ.dimension as Question['dimension'],
+            caseType: dbQ.caseType as Question['caseType'],
+            difficulty: dbQ.difficulty as Question['difficulty'],
+            tier: dbQ.tier as Question['tier'],
+            prompt: dbQ.prompt,
+            expectedAnswerType: dbQ.expectedAnswerType as Question['expectedAnswerType'],
+            expectedKeywords: dbQ.expectedKeywords,
+            scoringConfig: dbQ.scoringConfig as Question['scoringConfig'],
+          };
+        }
+      }
+
       if (!question) {
         results.push({
           questionId: submission.questionId,
