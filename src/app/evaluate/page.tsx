@@ -91,6 +91,7 @@ export default function EvaluatePage() {
   const [selectedModel, setSelectedModel] = useState('');
   const [selectedTier, setSelectedTier] = useState<string>('basic');
   const [selectedKey, setSelectedKey] = useState('');
+  const [selectedDimensions, setSelectedDimensions] = useState<string[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -129,7 +130,11 @@ export default function EvaluatePage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${selectedKey}`,
         },
-        body: JSON.stringify({ modelId: selectedModel, tier: selectedTier }),
+        body: JSON.stringify({
+          modelId: selectedModel,
+          tier: selectedTier,
+          dimensions: selectedDimensions.length > 0 ? selectedDimensions : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -292,6 +297,45 @@ export default function EvaluatePage() {
                 </div>
               </button>
             ))}
+          </div>
+        </section>
+
+        {/* Dimension Selection (optional) */}
+        <section className="mb-8">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+            <span className="flex size-7 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">?</span>
+            选择维度（可选）
+          </h2>
+          <p className="mb-3 text-sm text-muted-foreground">
+            不选择则评测全部五维。选择后只评测指定维度，适合快速检查某方面能力。
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { key: 'IQ', label: '🧠 IQ 认知', color: 'bg-indigo-50 dark:bg-indigo-950 border-indigo-200 dark:border-indigo-800' },
+              { key: 'EQ', label: '❤️ EQ 情感', color: 'bg-pink-50 dark:bg-pink-950 border-pink-200 dark:border-pink-800' },
+              { key: 'TQ', label: '🔧 TQ 工具', color: 'bg-teal-50 dark:bg-teal-950 border-teal-200 dark:border-teal-800' },
+              { key: 'AQ', label: '🛡️ AQ 安全', color: 'bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800' },
+              { key: 'SQ', label: '🌟 SQ 社交', color: 'bg-violet-50 dark:bg-violet-950 border-violet-200 dark:border-violet-800' },
+            ].map(dim => {
+              const isSelected = selectedDimensions.includes(dim.key);
+              return (
+                <button
+                  key={dim.key}
+                  onClick={() => {
+                    setSelectedDimensions(prev =>
+                      prev.includes(dim.key) ? prev.filter(d => d !== dim.key) : [...prev, dim.key]
+                    );
+                  }}
+                  className={`rounded-lg border-2 px-4 py-2 text-sm font-medium transition-all ${
+                    isSelected
+                      ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                      : `${dim.color} text-muted-foreground hover:border-primary/30`
+                  }`}
+                >
+                  {dim.label}
+                </button>
+              );
+            })}
           </div>
         </section>
 

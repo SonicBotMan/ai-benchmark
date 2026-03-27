@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getQuestionsForTier } from '@/lib/engine/question-bank';
+import { getQuestionsForTier, getQuestionsByDimension } from '@/lib/engine/question-bank';
 import { encrypt } from '@/lib/engine/encrypt';
-import { Tier } from '@/lib/types';
+import { Tier, SubDimension } from '@/lib/types';
 import crypto from 'crypto';
+
+// Map parent dimensions to sub-dimension question categories
+const PARENT_TO_SUBS: Record<string, string[]> = {
+  IQ: ['reasoning', 'knowledge', 'math', 'instruction_following', 'context_learning', 'code'],
+  EQ: ['eq', 'empathy', 'persona_consistency'],
+  TQ: ['tool_execution', 'planning', 'task_completion'],
+  AQ: ['safety'],
+  SQ: ['self_reflection', 'creativity', 'reliability', 'ambiguity_handling'],
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,7 +38,12 @@ export async function POST(req: NextRequest) {
     });
 
     const body = await req.json();
-    const { modelId, tier } = body as { modelId: string; tier: Tier };
+    const { modelId, tier, dimensions: requestedDimensions, agentId } = body as {
+      modelId: string;
+      tier: Tier;
+      dimensions?: string[];
+      agentId?: string;
+    };
 
     if (!modelId || !tier) {
       return NextResponse.json({ error: 'modelId and tier are required' }, { status: 400 });
@@ -45,9 +59,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Model not found' }, { status: 404 });
     }
 
-    const questions = getQuestionsForTier(tier);
-    const sessionId = crypto.randomBytes(32).toString('hex');
+    // Validate agentId if provided
+    let agent = null;
+    if (agentId) {
+      agent = await prisma.agent.findFirst({
+        where: { id: agentId, userId: apiKey.user.id },
+      });
+      if (!agent) {
+        return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+      }
+    }
 
+    // Get questions - either all for tier or filtered by dimensions
+    let questions: Array<{ id: string; prompt: string; dimension: string; caseType: string; difficulty: string; expectedAnswerType: string; tier?: string }> = [];
+    if (requestedDimensions && requestedDimensions.length > 0) {
+      // Single-dimension mode: get questions only from specified dimensions
+      const allDimQuestions = [];
+      const countPerDim = Math.ceil(50 / requestedDimensions.length);
+
+      for (const dim of requestedDimensions) {
+        const subDims = PARENT_TO_SUBS[dim.toUpperCase()] ?? [dim.toLowerCase()];
+        for (const sub of subDims) {
+          const dimQuestions = getQuestionsByDimension(sub as SubDimension, countPerDim);
+          allDimQuestions.push(...dimQuestions);
+        }
+      }
+
+      // Filter by tier
+      questions = allDimQuestions.filter(q => {
+        if (tier === 'basic') return q.tier === 'basic';
+        if (tier === 'standard') return q.tier === 'basic' || q.tier === 'standard';
+        return true;
+      }).sort(() => Math.random() - 0.5).slice(0, Math.min(questions.length, 50));
+    } else {
+      questions = getQuestionsForTier(tier);
+    }
+
+    if (questions.length === 0) {
+      return NextResponse.json({ error: 'No questions available for the selected dimensions' }, { status: 400 });
+    }
+
+    const sessionId = crypto.randomBytes(32).toString('hex');
     const encryptionKey = process.env.ENCRYPTION_KEY || 'default-encryption-key';
     const encryptedQuestions = encrypt(JSON.stringify(questions), encryptionKey);
 
@@ -55,6 +107,7 @@ export async function POST(req: NextRequest) {
       data: {
         userId: apiKey.user.id,
         modelId,
+        agentId: agentId || null,
         sessionId,
         tier,
         status: 'pending',
@@ -62,10 +115,21 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Return both encrypted (for security) and plain questions (for agent convenience)
     return NextResponse.json({
       sessionId: evaluation.sessionId,
-      questions: encryptedQuestions,
       tier,
+      questionCount: questions.length,
+      dimensions: requestedDimensions ?? ['all'],
+      // Return plain questions so the agent can answer directly
+      questions: questions.map(q => ({
+        id: q.id,
+        prompt: q.prompt,
+        dimension: q.dimension,
+        caseType: q.caseType,
+        difficulty: q.difficulty,
+        expectedAnswerType: q.expectedAnswerType,
+      })),
     });
   } catch (error) {
     console.error('Evaluate start error:', error);

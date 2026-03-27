@@ -455,7 +455,7 @@ export default function ReportPage() {
                   </div>
                 )}
                 <p className="text-sm italic text-muted-foreground border-l-2 border-primary/30 pl-3">
-                  😄 "{mbti.quote}"
+                  😄 <span>{mbti.quote}</span>
                 </p>
               </div>
             </div>
@@ -506,7 +506,7 @@ export default function ReportPage() {
                 <MessageCircle className="size-5 text-primary" /> Agent 想对你说
               </h2>
               <blockquote className="rounded-lg bg-background/80 p-4 text-sm leading-relaxed italic border-l-4 border-primary/30">
-                "{report.personaQuote}"
+                {report.personaQuote}
               </blockquote>
             </CardContent>
           </Card>
@@ -520,7 +520,7 @@ export default function ReportPage() {
             </h2>
             <p className="text-sm text-muted-foreground">
               你的 Agent 在你的 system prompt 指导下表现如何？
-              暂无基线对比数据。完成一次"空 system prompt"的基线测试后，可以查看你的训练对 Agent 能力的影响。
+              暂无基线对比数据。完成一次「空 system prompt」的基线测试后，可以查看你的训练对 Agent 能力的影响。
             </p>
           </CardContent>
         </Card>
