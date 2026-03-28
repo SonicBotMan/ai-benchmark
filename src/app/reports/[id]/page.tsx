@@ -17,6 +17,11 @@ import {
 import { cn } from '@/lib/utils';
 import { LEVEL_LABELS, DIMENSION_LABELS, SUB_DIMENSION_LABELS, PLATFORM_INFO } from '@/lib/types';
 import { generateOptimizations, generateStory } from '@/lib/engine/templates/optimization';
+import ShareCard from '@/components/ShareCard';
+
+const LEVEL_EMOJI: Record<string, string> = {
+  bronze: '🥉', silver: '🥈', gold: '🥇', platinum: '💎', diamond: '💠', master: '👑',
+};
 
 interface ReportData {
   id: string;
@@ -676,6 +681,19 @@ export default function ReportPage() {
             </Card>
           );
         })()}
+
+        {/* Share Card */}
+        <div className="mb-8">
+          <ShareCard
+            agentName={report.agentName ?? report.model.name}
+            totalScore={report.totalScore}
+            levelRating={report.levelRating}
+            levelEmoji={LEVEL_EMOJI[report.levelRating] ?? '🏆'}
+            tags={report.tags}
+            dimensionScores={report.dimensionScores}
+            reportUrl={typeof window !== 'undefined' ? window.location.href : ''}
+          />
+        </div>
 
         {/* Actions */}
         <div className="flex flex-wrap justify-center gap-3">

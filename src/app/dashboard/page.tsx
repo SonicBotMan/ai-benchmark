@@ -68,11 +68,14 @@ const PLATFORM_ICONS: Record<string, string> = {
   openclaw: '🐾', cursor: '⌨️', 'claude-code': '🟠', custom: '🔧',
 };
 
+import Onboarding from '@/components/onboarding/OnboardingModal';
+
 export default function ConsolePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Data state
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -106,6 +109,10 @@ export default function ConsolePage() {
         setApiKeys(keysData.apiKeys ?? []);
         setEvaluations(evalsData.evaluations ?? []);
         setCredits(creditsData.credits ?? 0);
+        // Show onboarding for new users
+        const isNewUser = (agentsData.agents ?? []).length === 0 && (evalsData.evaluations ?? []).length === 0;
+        const dismissed = localStorage.getItem('onboarding_dismissed');
+        if (isNewUser && !dismissed) setShowOnboarding(true);
       }).finally(() => setLoading(false));
     }
   }, [status, router]);
@@ -192,6 +199,16 @@ export default function ConsolePage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Onboarding for new users */}
+      {showOnboarding && (
+        <Onboarding
+          onDismiss={() => {
+            setShowOnboarding(false);
+            localStorage.setItem('onboarding_dismissed', 'true');
+          }}
+        />
+      )}
+
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold">控制台</h1>
