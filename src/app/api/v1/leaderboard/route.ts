@@ -79,6 +79,15 @@ export async function GET(req: NextRequest) {
 
     const paginated = sorted.slice(offset, offset + limit);
 
+    // Calculate averages
+    const allScores = leaderboard.map(e => e.totalScore ?? 0);
+    const avgTotal = allScores.length > 0 ? Math.round(allScores.reduce((a, b) => (a ?? 0) + (b ?? 0), 0) / allScores.length) : 0;
+    const avgIq = leaderboard.length > 0 ? Math.round(leaderboard.reduce((s, e) => s + e.iqScore, 0) / leaderboard.length) : 0;
+    const avgEq = leaderboard.length > 0 ? Math.round(leaderboard.reduce((s, e) => s + e.eqScore, 0) / leaderboard.length) : 0;
+    const avgTq = leaderboard.length > 0 ? Math.round(leaderboard.reduce((s, e) => s + e.tqScore, 0) / leaderboard.length) : 0;
+    const avgAq = leaderboard.length > 0 ? Math.round(leaderboard.reduce((s, e) => s + e.aqScore, 0) / leaderboard.length) : 0;
+    const avgSq = leaderboard.length > 0 ? Math.round(leaderboard.reduce((s, e) => s + e.sqScore, 0) / leaderboard.length) : 0;
+
     return NextResponse.json({
       total: sorted.length,
       offset,
@@ -87,6 +96,14 @@ export async function GET(req: NextRequest) {
       platform: platform || null,
       tier: tier || null,
       leaderboard: paginated,
+      averages: {
+        total: avgTotal,
+        iq: avgIq,
+        eq: avgEq,
+        tq: avgTq,
+        aq: avgAq,
+        sq: avgSq,
+      },
     });
   } catch (error) {
     console.error('Leaderboard error:', error);

@@ -12,9 +12,11 @@ import {
   Share2, RotateCcw, Brain, Heart, Cpu, Sparkles, Shield, Trophy,
   Calendar, ChevronRight, Bot, MessageCircle, Target, Award,
   ChevronDown, ChevronUp, Star, Zap, TrendingUp, TrendingDown,
+  Copy, Check, Wrench, BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LEVEL_LABELS, DIMENSION_LABELS, SUB_DIMENSION_LABELS, PLATFORM_INFO } from '@/lib/types';
+import { generateOptimizations, generateStory } from '@/lib/engine/templates/optimization';
 
 interface ReportData {
   id: string;
@@ -150,6 +152,8 @@ export default function ReportPage() {
   const [loading, setLoading] = useState(true);
   const [usedMock, setUsedMock] = useState(false);
   const [expandedDim, setExpandedDim] = useState<string | null>('IQ');
+  const [copiedOpt, setCopiedOpt] = useState<string | null>(null);
+  const [averages, setAverages] = useState<Record<string, number>>({});
 
   useEffect(() => {
     async function fetchReport() {
@@ -202,6 +206,10 @@ export default function ReportPage() {
       setLoading(false);
     }
     fetchReport();
+    // Fetch averages for comparison
+    fetch('/api/v1/leaderboard?limit=100').then(r => r.json()).then(d => {
+      if (d.averages) setAverages(d.averages);
+    }).catch(() => {});
   }, [params.id]);
 
   if (loading || !report) {
@@ -550,8 +558,127 @@ export default function ReportPage() {
           </CardContent>
         </Card>
 
+        {/* Section: vs Comparison */}
+        {Object.keys(averages).length > 0 && (
+          <Card className="mb-8">
+            <CardContent className="py-6">
+              <h2 className="mb-4 text-lg font-semibold">📊 你的 Agent vs 全网平均</h2>
+              <div className="space-y-4">
+                {Object.entries(report.dimensionScores).map(([key, score]) => {
+                  const avgKey = key.toLowerCase();
+                  const avg = averages[avgKey] ?? 0;
+                  const diff = score - avg;
+                  const info = DIMENSION_INFO[key];
+                  return (
+                    <div key={key}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <span className="flex items-center gap-2 font-medium">
+                          <span>{info?.emoji}</span>
+                          {DIMENSION_LABELS[key as keyof typeof DIMENSION_LABELS] ?? key}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <span className="font-mono font-semibold">{score}</span>
+                          {avg > 0 && (
+                            <span className={`text-xs font-medium ${diff >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                              {diff >= 0 ? '+' : ''}{diff} vs avg
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <div className="relative h-3 w-full overflow-hidden rounded-full bg-muted">
+                        <div className="absolute inset-0 h-full rounded-full bg-muted-foreground/10" style={{ width: `${Math.min(avg / 10, 100)}%` }} />
+                        <div className="relative h-full rounded-full" style={{ width: `${Math.min(score / 10, 100)}%`, backgroundColor: info?.color }} />
+                      </div>
+                      {avg > 0 && (
+                        <div className="mt-0.5 text-[10px] text-muted-foreground">
+                          全网平均: {avg} | 你的: {score} | {diff >= 0 ? `领先 ${diff} 分` : `落后 ${Math.abs(diff)} 分`}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Section: Optimization Instructions */}
+        {(() => {
+          const platform = report.platform ?? 'openclaw';
+          const opts = generateOptimizations(
+            report.dimensionScores,
+            report.subDimensionScores,
+            platform
+          );
+          if (opts.length === 0) return null;
+          return (
+            <Card className="mb-8">
+              <CardContent className="py-6">
+                <h2 className="mb-4 text-lg font-semibold">🔧 优化指令（一键复制）</h2>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  根据评测结果，我们为你的 {PLATFORM_INFO[platform as keyof typeof PLATFORM_INFO]?.label ?? platform} 生成了以下优化建议。
+                  复制内容到对应文件，即可提升 Agent 能力。
+                </p>
+                <div className="space-y-4">
+                  {opts.map((opt, i) => (
+                    <div key={i} className={`rounded-xl border p-4 ${opt.severity === 'critical' ? 'border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-950/30' : 'border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/30'}`}>
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${opt.severity === 'critical' ? 'bg-red-500 text-white' : 'bg-amber-500 text-white'}`}>
+                          {opt.severity === 'critical' ? '紧急' : '建议'}
+                        </span>
+                        <span className="text-sm font-semibold">{opt.dimension} 维度优化</span>
+                        <span className="ml-auto text-xs text-muted-foreground">📁 {opt.file}</span>
+                      </div>
+                      <p className="mb-3 text-xs text-muted-foreground">{opt.diagnosis}</p>
+                      <div className="relative">
+                        <pre className="max-h-40 overflow-y-auto rounded-lg bg-background p-3 text-xs font-mono whitespace-pre-wrap border">
+                          {opt.content}
+                        </pre>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="absolute right-2 top-2 gap-1 text-xs"
+                          onClick={() => {
+                            navigator.clipboard.writeText(opt.content);
+                            setCopiedOpt(`${i}`);
+                            setTimeout(() => setCopiedOpt(null), 2000);
+                          }}
+                        >
+                          {copiedOpt === `${i}` ? <><Check className="size-3" /> 已复制</> : <><Copy className="size-3" /> 复制</>}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
+        {/* Section: Agent Story */}
+        {(() => {
+          const story = generateStory(
+            report.agentName ?? report.model.name,
+            report.dimensionScores
+          );
+          return (
+            <Card className="mb-8 border-dashed">
+              <CardContent className="py-6">
+                <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+                  <BookOpen className="size-5" /> {report.agentName ?? report.model.name} 的一天
+                </h2>
+                <div className="space-y-3 text-sm leading-relaxed">
+                  {story.split('\n\n').map((para, i) => (
+                    <p key={i} className="text-muted-foreground">{para}</p>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         {/* Actions */}
-        <div className="flex justify-center gap-3">
+        <div className="flex flex-wrap justify-center gap-3">
           <Button variant="outline" onClick={handleShare} className="gap-2">
             <Share2 className="size-4" /> 分享报告
           </Button>
