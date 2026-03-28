@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -24,7 +25,15 @@ interface CompareReport {
   tags: string[];
 }
 
-export default function ComparePage() {
+export default function ComparePageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="size-8 animate-spin text-muted-foreground" /></div>}>
+      <ComparePage />
+    </Suspense>
+  );
+}
+
+function ComparePage() {
   const searchParams = useSearchParams();
   const a = searchParams.get('a');
   const b = searchParams.get('b');
