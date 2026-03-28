@@ -1,4 +1,7 @@
-import { Brain, Heart, Wrench, Shield, Sparkles, ArrowRight, Zap } from "lucide-react";
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Brain, Heart, Wrench, Shield, Sparkles, ArrowRight, Zap, Trophy } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -92,6 +95,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Live Stats */}
+      <LiveStats />
 
       {/* Five Dimensions Section */}
       <section className="border-t border-border/40 bg-muted/30 py-20 sm:py-24 lg:py-32">
@@ -214,5 +220,43 @@ export default function Home() {
         </div>
       </section>
     </>
+  );
+}
+
+function LiveStats() {
+  const [stats, setStats] = useState({ total: 0, models: 0, avg: 0 });
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/v1/leaderboard?limit=100').then(r => r.json()).catch(() => ({})),
+      fetch('/api/v1/models').then(r => r.json()).catch(() => ({})),
+    ]).then(([lb, models]) => {
+      setStats({
+        total: lb.total ?? 0,
+        models: (models.models ?? []).length,
+        avg: lb.averages?.total ?? 0,
+      });
+    });
+  }, []);
+
+  return (
+    <section className="border-y border-border/40 bg-muted/20 py-10">
+      <div className="container mx-auto max-w-4xl px-4 sm:px-6">
+        <div className="grid grid-cols-3 gap-6 text-center">
+          <div>
+            <div className="text-2xl font-bold sm:text-3xl">{stats.total}</div>
+            <div className="text-xs text-muted-foreground sm:text-sm">已完成评测</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold sm:text-3xl">{stats.models}</div>
+            <div className="text-xs text-muted-foreground sm:text-sm">支持模型</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold sm:text-3xl">{stats.avg || '—'}</div>
+            <div className="text-xs text-muted-foreground sm:text-sm">全网平均分</div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
