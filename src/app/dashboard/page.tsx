@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import {
   LayoutDashboard, Bot, FileText, Key, Download, Plus, Copy, Trash2,
-  Check, Loader2, Trophy, ChevronRight, Play, BarChart3, ExternalLink,
+  Check, Loader2, Trophy, ChevronRight, Play, BarChart3, ExternalLink, Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,6 +77,7 @@ export default function ConsolePage() {
   // Data state
   const [agents, setAgents] = useState<Agent[]>([]);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [credits, setCredits] = useState(0);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
 
   // API Key management state
@@ -99,10 +100,12 @@ export default function ConsolePage() {
         fetch('/api/agents').then(r => r.json()),
         fetch('/api/dashboard/apikeys').then(r => r.json()),
         fetch('/api/dashboard/evaluations').then(r => r.json()),
-      ]).then(([agentsData, keysData, evalsData]) => {
+        fetch('/api/dashboard/credits').then(r => r.json()),
+      ]).then(([agentsData, keysData, evalsData, creditsData]) => {
         setAgents(agentsData.agents ?? []);
         setApiKeys(keysData.apiKeys ?? []);
         setEvaluations(evalsData.evaluations ?? []);
+        setCredits(creditsData.credits ?? 0);
       }).finally(() => setLoading(false));
     }
   }, [status, router]);
@@ -286,6 +289,19 @@ export default function ConsolePage() {
                         <div>
                           <div className="text-2xl font-bold">{apiKeys.length}</div>
                           <div className="text-xs text-muted-foreground">API Keys</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-10 items-center justify-center rounded-lg bg-green-50 dark:bg-green-950">
+                          <Zap className="size-5 text-green-500" />
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold">{credits}</div>
+                          <div className="text-xs text-muted-foreground">积分余额</div>
                         </div>
                       </div>
                     </CardContent>

@@ -54,6 +54,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'tier must be basic, standard, or professional' }, { status: 400 });
     }
 
+    // Credit check
+    const CREDIT_COST: Record<string, number> = { basic: 1, standard: 3, professional: 5 };
+    const cost = CREDIT_COST[tier] ?? 1;
+    const user = await prisma.user.findUnique({ where: { id: apiKey.user.id } });
+    if (!user || (user.credits ?? 0) < cost) {
+      return NextResponse.json({
+        error: `积分不足。${tier} 评测需要 ${cost} 积分，当前余额 ${user?.credits ?? 0}。`,
+        required: cost,
+        balance: user?.credits ?? 0,
+      }, { status: 402 });
+    }
+
+    // Deduct credits
+    await prisma.user.update({
+      where: { id: apiKey.user.id },
+      data: { credits: { decrement: cost } },
+    });
+
     const model = await prisma.model.findUnique({ where: { id: modelId } });
     if (!model) {
       return NextResponse.json({ error: 'Model not found' }, { status: 404 });

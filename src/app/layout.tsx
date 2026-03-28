@@ -27,6 +27,10 @@ function Navbar() {
     const stored = localStorage.getItem('theme');
     return stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
+  const [lang, setLang] = useState(() => {
+    if (typeof window === 'undefined') return 'zh';
+    return (localStorage.getItem('lang') as 'zh' | 'en') || 'zh';
+  });
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
@@ -37,6 +41,12 @@ function Navbar() {
     setIsDark(next);
     document.documentElement.classList.toggle('dark', next);
     localStorage.setItem('theme', next ? 'dark' : 'light');
+  };
+
+  const toggleLang = () => {
+    const next = lang === 'zh' ? 'en' : 'zh';
+    setLang(next);
+    localStorage.setItem('lang', next);
   };
 
   const navLinks = [
@@ -71,8 +81,12 @@ function Navbar() {
 
         <div className="flex items-center gap-2">
           {/* Theme toggle */}
-          <Button variant="ghost" size="icon-sm" onClick={toggleTheme} title={isDark ? '切换亮色' : '切换暗色'}>
+          <Button variant="ghost" size="icon-sm" onClick={toggleTheme} title={isDark ? 'Light' : 'Dark'}>
             {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          </Button>
+          {/* Language toggle */}
+          <Button variant="ghost" size="sm" onClick={toggleLang} className="text-xs font-medium">
+            {lang === 'zh' ? 'EN' : '中'}
           </Button>
 
           {session ? (

@@ -216,7 +216,140 @@ export interface ScoringResult {
       },
     };
 
-    return NextResponse.json(skillPackage);
+    return NextResponse.json({
+      ...skillPackage,
+      tools: {
+        openai: [
+          {
+            type: 'function',
+            function: {
+              name: 'ai_benchmark_start',
+              description: 'Start a new AI Benchmark evaluation session. Returns session ID and questions.',
+              parameters: {
+                type: 'object',
+                properties: {
+                  modelId: { type: 'string', description: 'The model ID to evaluate' },
+                  tier: { type: 'string', enum: ['basic', 'standard', 'professional'], description: 'Evaluation tier' },
+                  dimensions: { type: 'array', items: { type: 'string' }, description: 'Optional: filter by dimensions (IQ, EQ, TQ, AQ, SQ)' },
+                },
+                required: ['modelId', 'tier'],
+              },
+            },
+          },
+          {
+            type: 'function',
+            function: {
+              name: 'ai_benchmark_submit',
+              description: 'Submit answers to evaluation questions. Each answer gets a score and grade (A/B/C/D).',
+              parameters: {
+                type: 'object',
+                properties: {
+                  sessionId: { type: 'string', description: 'Session ID from start' },
+                  blockIndex: { type: 'number', description: 'Block index (usually 0)' },
+                  answers: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        questionId: { type: 'string' },
+                        answerType: { type: 'string', enum: ['text', 'tool_call', 'refusal'] },
+                        answer: { type: 'string', description: 'Your answer text' },
+                      },
+                      required: ['questionId', 'answerType', 'answer'],
+                    },
+                  },
+                },
+                required: ['sessionId', 'blockIndex', 'answers'],
+              },
+            },
+          },
+          {
+            type: 'function',
+            function: {
+              name: 'ai_benchmark_finish',
+              description: 'Finish the evaluation and generate the final report with scores, MBTI type, and optimization tips.',
+              parameters: {
+                type: 'object',
+                properties: {
+                  sessionId: { type: 'string', description: 'Session ID from start' },
+                },
+                required: ['sessionId'],
+              },
+            },
+          },
+          {
+            type: 'function',
+            function: {
+              name: 'ai_benchmark_status',
+              description: 'Check the status and scores of an evaluation session.',
+              parameters: {
+                type: 'object',
+                properties: {
+                  sessionId: { type: 'string', description: 'Session ID to check' },
+                },
+                required: ['sessionId'],
+              },
+            },
+          },
+        ],
+        anthropic: [
+          {
+            name: 'ai_benchmark_start',
+            description: 'Start a new AI Benchmark evaluation session.',
+            input_schema: {
+              type: 'object',
+              properties: {
+                modelId: { type: 'string', description: 'The model ID to evaluate' },
+                tier: { type: 'string', enum: ['basic', 'standard', 'professional'] },
+                dimensions: { type: 'array', items: { type: 'string' } },
+              },
+              required: ['modelId', 'tier'],
+            },
+          },
+          {
+            name: 'ai_benchmark_submit',
+            description: 'Submit answers to evaluation questions.',
+            input_schema: {
+              type: 'object',
+              properties: {
+                sessionId: { type: 'string' },
+                blockIndex: { type: 'number' },
+                answers: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      questionId: { type: 'string' },
+                      answerType: { type: 'string', enum: ['text', 'tool_call', 'refusal'] },
+                      answer: { type: 'string' },
+                    },
+                  },
+                },
+              },
+              required: ['sessionId', 'blockIndex', 'answers'],
+            },
+          },
+          {
+            name: 'ai_benchmark_finish',
+            description: 'Finish the evaluation and generate the final report.',
+            input_schema: {
+              type: 'object',
+              properties: { sessionId: { type: 'string' } },
+              required: ['sessionId'],
+            },
+          },
+          {
+            name: 'ai_benchmark_status',
+            description: 'Check evaluation session status.',
+            input_schema: {
+              type: 'object',
+              properties: { sessionId: { type: 'string' } },
+              required: ['sessionId'],
+            },
+          },
+        ],
+      },
+    });
   } catch (error) {
     console.error('Skill error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
