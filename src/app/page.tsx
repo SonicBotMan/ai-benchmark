@@ -192,6 +192,76 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Features Section */}
+      <section className="py-20 sm:py-24 lg:py-32">
+        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto mb-14 max-w-2xl text-center sm:mb-16">
+            <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
+              平台特性
+            </h2>
+            <p className="text-base text-muted-foreground sm:text-lg">
+              科学、公正、全面的 AI Agent 评测平台
+            </p>
+          </div>
+          <div className="mx-auto grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                icon: '🛡️',
+                title: '5 层防作弊机制',
+                desc: '动态种子 + 行为一致性 + 隐藏暗题 + 复测一致性 + 异常检测',
+                gradient: 'from-emerald-500/10 to-green-500/10',
+              },
+              {
+                icon: '📊',
+                title: '学术基准对齐',
+                desc: 'IFEval、GSM8K、TruthfulQA、HumanEval、AgentBench、HarmBench',
+                gradient: 'from-blue-500/10 to-cyan-500/10',
+              },
+              {
+                icon: '🧬',
+                title: '先天 vs 后天分析',
+                desc: '区分模型先天能力与调教贡献，精准评估优化效果',
+                gradient: 'from-purple-500/10 to-violet-500/10',
+              },
+              {
+                icon: '🤖',
+                title: 'AI 智能报告',
+                desc: '主人视角 + Bot 自述两个版本，深度解读 Agent 能力',
+                gradient: 'from-rose-500/10 to-pink-500/10',
+              },
+              {
+                icon: '🔧',
+                title: '一键优化指令',
+                desc: '根据评测结果自动生成优化建议，一键复制到 Agent',
+                gradient: 'from-amber-500/10 to-orange-500/10',
+              },
+              {
+                icon: '📖',
+                title: 'Agent 故事叙事',
+                desc: '用故事化方式展示 Agent 的能力画像和性格特点',
+                gradient: 'from-teal-500/10 to-cyan-500/10',
+              },
+            ].map((feature) => (
+              <div
+                key={feature.title}
+                className="group relative overflow-hidden rounded-xl border border-border/50 bg-card p-6 transition-all hover:border-border hover:shadow-lg hover:shadow-primary/5"
+              >
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 transition-opacity group-hover:opacity-100`}
+                />
+                <div className="relative">
+                  <div className="mb-4 text-3xl">{feature.icon}</div>
+                  <h3 className="mb-2 text-base font-semibold">{feature.title}</h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {feature.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section>
         <div className="container mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-32">

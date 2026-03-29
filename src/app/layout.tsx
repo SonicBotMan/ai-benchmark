@@ -53,6 +53,7 @@ function Navbar() {
     { href: '/rankings', label: '排行榜' },
     { href: '/benchmarks', label: '测评集' },
     { href: '/skill', label: '技能' },
+    { href: '/faq', label: '常见问题' },
     { href: '/api-docs', label: 'API' },
   ];
 
@@ -187,6 +188,12 @@ function Footer() {
             </a>
             <a href="/docs" className="transition-colors hover:text-foreground">
               文档
+            </a>
+            <a href="/faq" className="transition-colors hover:text-foreground">
+              常见问题
+            </a>
+            <a href="/feedback" className="transition-colors hover:text-foreground">
+              反馈
             </a>
             <a href="/privacy" className="transition-colors hover:text-foreground">
               隐私政策
