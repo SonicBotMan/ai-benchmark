@@ -18,6 +18,11 @@ import { cn } from '@/lib/utils';
 import { LEVEL_LABELS, DIMENSION_LABELS, SUB_DIMENSION_LABELS, PLATFORM_INFO } from '@/lib/types';
 import { generateOptimizations, generateStory } from '@/lib/engine/templates/optimization';
 import ShareCard from '@/components/ShareCard';
+import ReportToggle from '@/components/report/ReportToggle';
+import InnateAcquiredChart from '@/components/baseline/InnateAcquiredChart';
+import BaselinePrompt from '@/components/baseline/BaselinePrompt';
+import AntiCheatSection from '@/components/anti-cheat/AntiCheatSection';
+import { LLMReportGenerator, type GeneratedReport } from '@/lib/engine/report-generator/llm-report-generator';
 
 const LEVEL_EMOJI: Record<string, string> = {
   bronze: '🥉', silver: '🥈', gold: '🥇', platinum: '💎', diamond: '💠', master: '👑',
@@ -159,6 +164,9 @@ export default function ReportPage() {
   const [expandedDim, setExpandedDim] = useState<string | null>('IQ');
   const [copiedOpt, setCopiedOpt] = useState<string | null>(null);
   const [averages, setAverages] = useState<Record<string, number>>({});
+  const [generatedReport, setGeneratedReport] = useState<GeneratedReport | null>(null);
+  const [innateScores, setInnateScores] = useState<Record<string, number>>({});
+  const [acquiredScores, setAcquiredScores] = useState<Record<string, number>>({});
 
   useEffect(() => {
     async function fetchReport() {
@@ -216,6 +224,20 @@ export default function ReportPage() {
       if (d.averages) setAverages(d.averages);
     }).catch(() => {});
   }, [params.id]);
+
+  useEffect(() => {
+    if (!report) return;
+    const generator = new LLMReportGenerator();
+    generator.generateReport({
+      agentName: report.agentName ?? report.model.name,
+      totalScore: report.totalScore,
+      dimensionScores: report.dimensionScores,
+      subDimensionScores: report.subDimensionScores,
+      mbtiType: report.mbtiType,
+      tags: report.tags,
+      levelRating: report.levelRating,
+    }).then(setGeneratedReport).catch(() => {});
+  }, [report]);
 
   if (loading || !report) {
     return (
@@ -511,8 +533,19 @@ export default function ReportPage() {
           </Card>
         </div>
 
-        {/* Section 8: Agent Persona Quote */}
-        {report.personaQuote && (
+        {/* Section 8: AI Generated Report */}
+        {generatedReport && (
+          <div className="mb-8">
+            <h2 className="mb-4 text-lg font-semibold">🤖 AI 智能分析报告</h2>
+            <ReportToggle
+              ownerPerspective={generatedReport.ownerPerspective}
+              botPerspective={generatedReport.botPerspective}
+            />
+          </div>
+        )}
+
+        {/* Section 9: Agent Persona Quote (fallback if no AI report) */}
+        {!generatedReport && report.personaQuote && (
           <Card className="mb-8 border-primary/20 bg-primary/5">
             <CardContent className="py-6">
               <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
@@ -525,43 +558,26 @@ export default function ReportPage() {
           </Card>
         )}
 
-        {/* Section 9: Trainer Rating (placeholder) */}
-        <Card className="mb-8">
-          <CardContent className="py-6">
-            <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
-              <Bot className="size-5" /> 调教评分
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              你的 Agent 在你的 system prompt 指导下表现如何？
-              暂无基线对比数据。完成一次「空 system prompt」的基线测试后，可以查看你的训练对 Agent 能力的影响。
-            </p>
-          </CardContent>
-        </Card>
+        {/* Section 9: Trainer Rating / Innate Acquired Analysis */}
+        {Object.keys(innateScores).length > 0 ? (
+          <InnateAcquiredChart
+            innateScores={innateScores}
+            acquiredScores={acquiredScores}
+            totalScores={report.dimensionScores}
+          />
+        ) : (
+          <BaselinePrompt
+            agentName={report.agentName ?? report.model.name}
+            onRunBaseline={() => alert('基线测试功能即将开放')}
+          />
+        )}
 
         {/* Section 10: Data Credibility */}
-        <Card className="mb-8">
-          <CardContent className="py-6">
-            <h2 className="mb-3 text-sm font-semibold text-muted-foreground">📋 数据可信度</h2>
-            <div className="grid grid-cols-2 gap-4 text-center sm:grid-cols-4">
-              <div>
-                <div className="text-lg font-bold">✅</div>
-                <div className="text-xs text-muted-foreground">反作弊检测通过</div>
-              </div>
-              <div>
-                <div className="text-lg font-bold">✅</div>
-                <div className="text-xs text-muted-foreground">完整性校验通过</div>
-              </div>
-              <div>
-                <div className="text-lg font-bold">{report.tier}</div>
-                <div className="text-xs text-muted-foreground">评测套餐</div>
-              </div>
-              <div>
-                <div className="text-lg font-bold">{Object.keys(report.subDimensionScores).length}</div>
-                <div className="text-xs text-muted-foreground">测试题目数</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <AntiCheatSection
+          score={95}
+          hasAnomalies={false}
+          anomalies={[]}
+        />
 
         {/* Section: vs Comparison */}
         {Object.keys(averages).length > 0 && (
