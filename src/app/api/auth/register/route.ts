@@ -1,24 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
+import { z } from 'zod';
 import { prisma } from '@/lib/db';
+
+const registerSchema = z.object({
+  email: z.string().email('Invalid email format'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Za-z]/, 'Password must contain at least one letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
+});
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password } = body as { email: string; password: string };
+    const parsed = registerSchema.safeParse(body);
 
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0];
+      return NextResponse.json({ error: firstError.message }, { status: 400 });
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
-    }
-
-    if (password.length < 6) {
-      return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
-    }
+    const { email, password } = parsed.data;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {

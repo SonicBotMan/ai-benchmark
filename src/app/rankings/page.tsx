@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -10,9 +10,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
-  Trophy, ChevronRight, ChevronLeft, Bot, Award, Target, Star,
+  Trophy, ChevronRight, ChevronLeft, Bot,
 } from 'lucide-react'
-import { LEVEL_LABELS, DIMENSION_LABELS, PLATFORM_INFO } from '@/lib/types'
+import { LEVEL_LABELS, PLATFORM_INFO } from '@/lib/types'
 
 interface LeaderboardEntry {
   evaluationId: string
@@ -100,7 +100,10 @@ export default function RankingsPage() {
     return entry[key] ?? 0
   }
 
-  const sorted = [...data].sort((a, b) => getScore(b) - getScore(a))
+  const sorted = useMemo(() => {
+    return [...data].sort((a, b) => getScore(b) - getScore(a))
+  }, [data, dimension])
+  
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
   const paginated = sorted.slice((page - 1) * pageSize, page * pageSize)
 
@@ -224,7 +227,7 @@ export default function RankingsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {paginated.map((entry, idx) => {
+                      {paginated.map((entry) => {
                         const rank = sorted.indexOf(entry) + 1
                         const score = getScore(entry)
                         const isSelected = selectedIds.includes(entry.evaluationId)

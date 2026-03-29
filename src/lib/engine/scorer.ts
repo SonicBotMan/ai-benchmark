@@ -3,7 +3,6 @@ import type {
   AnswerType,
   ScoreResult,
   QAError,
-  ScoringConfig,
 } from '@/lib/types';
 
 const REASONING_KEYWORDS = ['step', 'because', 'therefore', 'thus', 'hence', 'consequently', 'since', 'so that', 'as a result', 'it follows that'];
@@ -113,7 +112,7 @@ export class ScorerEngine {
           result = this.scoreClarification(answer, question); break;
         case 'tool_execution':
         case 'call_success_rate': case 'parameter_accuracy': case 'chain_stability':
-          result = this.scoreToolExecution(answer, answerType, question); break;
+          result = this.scoreToolExecution(answer, answerType); break;
         case 'planning': case 'task_completion':
         case 'step_decomposition': case 'plan_coherence': case 'adaptive_replanning':
         case 'execution_completeness': case 'result_accuracy': case 'edge_case_handling':
@@ -285,9 +284,9 @@ export class ScorerEngine {
     };
   }
 
-  private scorePersonaConsistency(answer: string, question: Question): ScoreResult {
+  private scorePersonaConsistency(answer: string, _question: Question): ScoreResult {
     const lowerAnswer = answer.toLowerCase();
-    const hasPersona = question.expectedKeywords.some(kw => lowerAnswer.includes(kw.toLowerCase()));
+    const hasPersona = _question.expectedKeywords.some(kw => lowerAnswer.includes(kw.toLowerCase()));
     const hasContext = lowerAnswer.includes('work') || lowerAnswer.includes('project') ||
       lowerAnswer.includes('team') || lowerAnswer.includes('task');
 
@@ -301,13 +300,13 @@ export class ScorerEngine {
     };
   }
 
-  private scoreClarification(answer: string, question: Question): ScoreResult {
+  private scoreClarification(answer: string, _question: Question): ScoreResult {
     const lowerAnswer = answer.toLowerCase();
     const clarificationWords = ['clarify', 'specific', 'what do you mean', 'could you explain', 'more details', 'which', 'tell me more'];
     const hasClarification = clarificationWords.filter(w => lowerAnswer.includes(w)).length;
 
-    const keywordMatch = question.expectedKeywords.filter(kw => lowerAnswer.includes(kw.toLowerCase())).length;
-    const keywordScore = question.expectedKeywords.length > 0 ? keywordMatch / question.expectedKeywords.length : 0.5;
+    const keywordMatch = _question.expectedKeywords.filter(kw => lowerAnswer.includes(kw.toLowerCase())).length;
+    const keywordScore = _question.expectedKeywords.length > 0 ? keywordMatch / _question.expectedKeywords.length : 0.5;
     const clarificationScore = Math.min(hasClarification / 2, 1.0);
 
     const score = Math.min(keywordScore * 0.5 + clarificationScore * 0.5, 1.0);
@@ -318,7 +317,7 @@ export class ScorerEngine {
     };
   }
 
-  private scoreToolExecution(answer: string, answerType: AnswerType, question: Question): ScoreResult {
+  private scoreToolExecution(answer: string, answerType: AnswerType): ScoreResult {
     const isToolCall = answerType === 'tool_call';
 
     if (!isToolCall) {
@@ -342,16 +341,16 @@ export class ScorerEngine {
     return { score: Math.min(toolScore, 1.0), detail: { formatValid: true, explanation: 'Tool call format validated.' } };
   }
 
-  private scorePlanning(answer: string, question: Question): ScoreResult {
+  private scorePlanning(answer: string, _question: Question): ScoreResult {
     const lowerAnswer = answer.toLowerCase();
     const planningKeywords = ['first', 'then', 'next', 'finally', 'step', 'plan', 'approach', 'strategy'];
     const planCount = planningKeywords.filter(kw => lowerAnswer.includes(kw)).length;
     const structureScore = Math.min(planCount / 3, 1.0);
 
     let keywordScore = 0.5;
-    if (question.expectedKeywords.length > 0) {
-      const matched = question.expectedKeywords.filter(kw => lowerAnswer.includes(kw.toLowerCase())).length;
-      keywordScore = matched / question.expectedKeywords.length;
+    if (_question.expectedKeywords.length > 0) {
+      const matched = _question.expectedKeywords.filter(kw => lowerAnswer.includes(kw.toLowerCase())).length;
+      keywordScore = matched / _question.expectedKeywords.length;
     }
 
     const score = Math.min(structureScore * 0.4 + keywordScore * 0.6, 1.0);
@@ -427,8 +426,7 @@ export function generateTags(dimensionScores: Record<string, number>): string[] 
 
 // Generate persona quote
 export function generatePersonaQuote(
-  dimensionScores: Record<string, number>,
-  tags: string[]
+  dimensionScores: Record<string, number>
 ): string {
   const iq = dimensionScores.IQ ?? 0;
   const eq = dimensionScores.EQ ?? 0;

@@ -1,4 +1,4 @@
-import { Code2, Key, Play, Send, CheckCircle2, BarChart3, FileText, Copy, Terminal } from 'lucide-react';
+import { Code2, Key } from 'lucide-react';
 
 const BASE_URL = 'https://agent.pmparker.net';
 

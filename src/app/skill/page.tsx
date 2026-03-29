@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import {
-  Brain, Key, Download, Copy, Check, Loader2, Bot, Code2, FileText, ChevronDown, ChevronUp,
+  Key, Download, Copy, Check, Loader2, Bot, Code2, FileText, ChevronDown, ChevronUp,
   MessageSquare, Puzzle, ArrowRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';

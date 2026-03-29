@@ -180,6 +180,7 @@ model Question {
   @@index([caseType])
   @@index([difficulty])
   @@index([tier])
+  @@index([dimension, tier])
 }
 
 model ApiKey {

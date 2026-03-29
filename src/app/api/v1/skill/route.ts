@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 const SKILL_MD = `# AI Benchmark Skill
 
@@ -89,7 +89,7 @@ GET /api/v1/evaluate/status?sessionToken=your-session-token
 | 800-1000 | Master |
 `;
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const skillPackage = {
       name: 'ai-benchmark',

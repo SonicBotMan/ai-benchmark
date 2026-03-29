@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { validateApiKey } from '@/lib/auth-api';
 import { determineLevelRating, determineMBTI, generateTags, generatePersonaQuote } from '@/lib/engine/scorer';
 
 type DimensionKey = 'IQ' | 'EQ' | 'TQ' | 'AQ' | 'SQ';
@@ -35,6 +36,11 @@ const DIM_TO_PARENT: Record<string, DimensionKey> = {
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await validateApiKey(req);
+    if (!auth) {
+      return NextResponse.json({ error: 'Missing or invalid Authorization header' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { sessionId } = body as { sessionId: string };
 
@@ -53,7 +59,11 @@ export async function POST(req: NextRequest) {
     });
 
     if (!evaluation) {
-      return NextResponse.json({ error: 'Invalid session ID' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid session ID' }, { status: 404 });
+    }
+
+    if (evaluation.userId !== auth.apiKey.userId) {
+      return NextResponse.json({ error: 'Forbidden: session does not belong to this API key' }, { status: 403 });
     }
 
     if (evaluation.status === 'completed') {
@@ -129,7 +139,7 @@ export async function POST(req: NextRequest) {
     const levelRating = determineLevelRating(totalScore);
     const mbtiType = determineMBTI(dimensionScores);
     const tags = generateTags(dimensionScores);
-    const personaQuote = generatePersonaQuote(dimensionScores, tags);
+    const personaQuote = generatePersonaQuote(dimensionScores);
 
     const sortedSubDimensions = Object.entries(subDimensionScores)
       .map(([key, score]) => ({ key, score }))

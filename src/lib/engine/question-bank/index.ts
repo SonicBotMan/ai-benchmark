@@ -17,6 +17,11 @@ import { reliabilityQuestions } from './sq/reliability';
 import { ambiguityHandlingQuestions } from './sq/ambiguity-handling';
 import { codeQuestions } from './iq/code';
 
+// 内存中的问题库
+// 权衡说明：
+// 优点：快速访问，无需数据库查询
+// 注意：问题库增长时会影响启动时间和内存使用
+// 优化建议：如果问题超过500个，考虑懒加载或分页
 const ALL_QUESTIONS: Record<string, Question[]> = {
   reasoning: reasoningQuestions,
   knowledge: knowledgeQuestions,
@@ -76,8 +81,22 @@ export function getAllQuestions(): Question[] {
   return Object.values(ALL_QUESTIONS).flat();
 }
 
+let questionMap: Map<string, Question> | null = null;
+
+function buildQuestionMap(): Map<string, Question> {
+  if (!questionMap) {
+    questionMap = new Map();
+    const allQuestions = getAllQuestions();
+    for (const q of allQuestions) {
+      questionMap.set(q.id, q);
+    }
+  }
+  return questionMap;
+}
+
 export function getQuestionById(id: string): Question | undefined {
-  return getAllQuestions().find(q => q.id === id);
+  const map = buildQuestionMap();
+  return map.get(id);
 }
 
 export function getQuestionBankStats() {

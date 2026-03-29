@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Brain, Menu, X, Sun, Moon } from "lucide-react";

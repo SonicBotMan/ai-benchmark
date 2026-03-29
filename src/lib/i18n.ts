@@ -1,4 +1,12 @@
+// TODO: i18n system is defined but not integrated into components.
+// To enable full i18n support:
+// 1. Add React Context for language state
+// 2. Replace hardcoded strings with t() calls
+// 3. Add language toggle in UI
+// Currently keeping for future implementation.
 export type Lang = 'zh' | 'en';
+
+
 
 export const T: Record<Lang, Record<string, string>> = {
   zh: {

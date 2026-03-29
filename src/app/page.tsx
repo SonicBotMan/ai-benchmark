@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Brain, Heart, Wrench, Shield, Sparkles, ArrowRight, Zap, Trophy } from "lucide-react";
+import { Brain, Heart, Wrench, Shield, Sparkles, ArrowRight, Zap } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -41,14 +41,6 @@ const dimensions = [
     gradient: "from-violet-500/10 to-purple-500/10",
     iconColor: "text-violet-500",
   },
-];
-
-const models = [
-  { name: "GPT-4.1", provider: "OpenAI" },
-  { name: "Claude 4 Opus", provider: "Anthropic" },
-  { name: "Gemini 2.5 Pro", provider: "Google" },
-  { name: "DeepSeek R1", provider: "DeepSeek" },
-  { name: "Qwen 3", provider: "Alibaba" },
 ];
 
 export default function Home() {

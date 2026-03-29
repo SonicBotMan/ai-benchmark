@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Store feedback as a JSON field on the evaluation
-    const evaluation = await prisma.evaluation.update({
+    await prisma.evaluation.update({
       where: { id: evaluationId },
       data: {
         profileJson: {

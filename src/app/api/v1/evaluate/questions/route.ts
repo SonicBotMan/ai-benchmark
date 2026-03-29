@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { decrypt, EncryptedBlob } from '@/lib/engine/encrypt';
+import { requireEncryptionKey } from '@/lib/auth-api';
 
 export async function GET(req: NextRequest) {
   try {
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Decrypt the questions
-    const encryptionKey = process.env.ENCRYPTION_KEY || 'default-encryption-key';
+    const encryptionKey = requireEncryptionKey();
     let questions;
     try {
       const blob = evaluation.profileJson as unknown as EncryptedBlob;

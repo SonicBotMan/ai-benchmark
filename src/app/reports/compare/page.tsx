@@ -39,10 +39,10 @@ function ComparePage() {
   const b = searchParams.get('b');
   const [reportA, setReportA] = useState<CompareReport | null>(null);
   const [reportB, setReportB] = useState<CompareReport | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!a || !b);
 
   useEffect(() => {
-    if (!a || !b) { setLoading(false); return; }
+    if (!a || !b) return;
     Promise.all([
       fetch(`/api/v1/reports/${a}`).then(r => r.ok ? r.json() : null),
       fetch(`/api/v1/reports/${b}`).then(r => r.ok ? r.json() : null),

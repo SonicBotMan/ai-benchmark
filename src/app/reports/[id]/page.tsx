@@ -9,10 +9,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  Share2, RotateCcw, Brain, Heart, Cpu, Sparkles, Shield, Trophy,
-  Calendar, ChevronRight, Bot, MessageCircle, Target, Award,
+  Share2, RotateCcw, Brain, Heart, Cpu, Sparkles, Shield,
+  Calendar, ChevronRight, Bot, MessageCircle, Award,
   ChevronDown, ChevronUp, Star, Zap, TrendingUp, TrendingDown,
-  Copy, Check, Wrench, BookOpen,
+  Copy, Check, BookOpen, Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LEVEL_LABELS, DIMENSION_LABELS, SUB_DIMENSION_LABELS, PLATFORM_INFO } from '@/lib/types';

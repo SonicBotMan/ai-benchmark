@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import {
-  Plus, Bot, Loader2, ChevronRight, Play, Key, Copy, Check, Trash2,
+  Plus, Bot, Loader2, Play, Copy, Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

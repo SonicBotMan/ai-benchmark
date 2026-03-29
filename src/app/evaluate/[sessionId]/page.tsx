@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Brain, Heart, Cpu, Shield, Sparkles, Send, Loader2, CheckCircle2,
@@ -33,13 +33,6 @@ interface SubmitResult {
   questionId: string;
   score: number;
   detail: Record<string, unknown>;
-}
-
-interface EncryptedQuestions {
-  iv: string;
-  salt: string;
-  tag: string;
-  data: string;
 }
 
 interface FinishResult {
@@ -366,7 +359,6 @@ export default function EvaluateSessionPage() {
 
   const isLastQuestion = currentIndex === questions.length - 1;
   const hasAnswered = lastResult !== null;
-  const allAnswered = results.length === questions.length;
 
   return (
     <div className="min-h-screen bg-background">

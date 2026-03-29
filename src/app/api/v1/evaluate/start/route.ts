@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { validateApiKey, requireEncryptionKey } from '@/lib/auth-api';
 import { getQuestionsForTier } from '@/lib/engine/question-bank';
 import { encrypt } from '@/lib/engine/encrypt';
 import { Tier } from '@/lib/types';
@@ -16,26 +17,11 @@ const PARENT_TO_SUBS: Record<string, string[]> = {
 
 export async function POST(req: NextRequest) {
   try {
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    const auth = await validateApiKey(req);
+    if (!auth) {
       return NextResponse.json({ error: 'Missing or invalid Authorization header' }, { status: 401 });
     }
-
-    const token = authHeader.slice(7);
-
-    const apiKey = await prisma.apiKey.findUnique({
-      where: { key: token },
-      include: { user: true },
-    });
-
-    if (!apiKey) {
-      return NextResponse.json({ error: 'Invalid API key' }, { status: 401 });
-    }
-
-    await prisma.apiKey.update({
-      where: { id: apiKey.id },
-      data: { lastUsedAt: new Date() },
-    });
+    const apiKey = auth.apiKey;
 
     const body = await req.json();
     const { modelId, tier, dimensions: requestedDimensions, agentId } = body as {
@@ -54,23 +40,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'tier must be basic, standard, or professional' }, { status: 400 });
     }
 
-    // Credit check
     const CREDIT_COST: Record<string, number> = { basic: 1, standard: 3, professional: 5 };
     const cost = CREDIT_COST[tier] ?? 1;
-    const user = await prisma.user.findUnique({ where: { id: apiKey.user.id } });
-    if (!user || (user.credits ?? 0) < cost) {
+
+    const deducted = await prisma.user.updateMany({
+      where: { id: apiKey.userId, credits: { gte: cost } },
+      data: { credits: { decrement: cost } },
+    });
+
+    if (deducted.count === 0) {
+      const user = await prisma.user.findUnique({ where: { id: apiKey.userId }, select: { credits: true } });
       return NextResponse.json({
         error: `积分不足。${tier} 评测需要 ${cost} 积分，当前余额 ${user?.credits ?? 0}。`,
         required: cost,
         balance: user?.credits ?? 0,
       }, { status: 402 });
     }
-
-    // Deduct credits
-    await prisma.user.update({
-      where: { id: apiKey.user.id },
-      data: { credits: { decrement: cost } },
-    });
 
     const model = await prisma.model.findUnique({ where: { id: modelId } });
     if (!model) {
@@ -81,7 +66,7 @@ export async function POST(req: NextRequest) {
     let agent = null;
     if (agentId) {
       agent = await prisma.agent.findFirst({
-        where: { id: agentId, userId: apiKey.user.id },
+        where: { id: agentId, userId: apiKey.userId },
       });
       if (!agent) {
         return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
@@ -106,14 +91,17 @@ export async function POST(req: NextRequest) {
       if (tier === 'basic') tierFilter.tier = 'basic';
       else if (tier === 'standard') tierFilter.tier = { in: ['basic', 'standard'] };
 
+      // Fetch more questions than needed to allow random selection
+      const SAMPLE_SIZE = 100;
       const dbQuestions = await prisma.question.findMany({
         where: {
           dimension: { in: subDims },
           ...tierFilter,
         },
+        take: SAMPLE_SIZE,
       });
 
-      // Shuffle and limit
+      // Shuffle in memory and select 50 questions
       const shuffled = dbQuestions.sort(() => Math.random() - 0.5);
       selectedQuestions = shuffled.slice(0, 50).map(q => ({
         id: q.id,
@@ -140,12 +128,12 @@ export async function POST(req: NextRequest) {
     }
 
     const sessionId = crypto.randomBytes(32).toString('hex');
-    const encryptionKey = process.env.ENCRYPTION_KEY || 'default-encryption-key';
+    const encryptionKey = requireEncryptionKey();
     const encryptedQuestions = encrypt(JSON.stringify(selectedQuestions), encryptionKey);
 
     const evaluation = await prisma.evaluation.create({
       data: {
-        userId: apiKey.user.id,
+        userId: apiKey.userId,
         modelId,
         agentId: agentId || null,
         sessionId,
