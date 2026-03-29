@@ -116,7 +116,11 @@ export default function TermsPage() {
           <section className="rounded-2xl border bg-card p-6 sm:p-8">
             <h2 className="mb-3 text-lg font-bold text-foreground">11. 联系方式</h2>
             <p>
-              如对本服务条款有任何疑问，请通过 GitHub Issues 与我们联系。
+              如对本服务条款有任何疑问，请通过{' '}
+              <a href="https://github.com/SonicBotMan/ai-benchmark/issues" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                GitHub Issues
+              </a>
+              {' '}与我们联系。
             </p>
           </section>
         </div>

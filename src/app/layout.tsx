@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Brain, Menu, X, Sun, Moon } from "lucide-react";
+import { Brain, Menu, X, Sun, Moon, ExternalLink } from "lucide-react";
 import { useSession, signOut, SessionProvider } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import "./globals.css";
@@ -80,6 +80,16 @@ function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
+          {/* GitHub link */}
+          <a
+            href="https://github.com/SonicBotMan/ai-benchmark"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden items-center gap-1 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:flex"
+          >
+            <ExternalLink className="size-3.5" />
+            <span>开源</span>
+          </a>
           {/* Theme toggle */}
           <Button variant="ghost" size="icon-sm" onClick={toggleTheme} title={isDark ? 'Light' : 'Dark'}>
             {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}

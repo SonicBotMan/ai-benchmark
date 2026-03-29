@@ -150,7 +150,11 @@ export default function AboutPage() {
         <section className="rounded-2xl border bg-card p-6 sm:p-8 text-center">
           <h2 className="mb-2 text-xl font-bold">联系我们</h2>
           <p className="text-sm text-muted-foreground">
-            如有任何问题、建议或合作意向，欢迎通过 GitHub Issues 与我们交流。
+            如有任何问题、建议或合作意向，欢迎通过{' '}
+            <a href="https://github.com/SonicBotMan/ai-benchmark/issues" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              GitHub Issues
+            </a>
+            {' '}与我们交流。
           </p>
         </section>
       </div>
