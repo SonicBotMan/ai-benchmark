@@ -6,6 +6,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Brain, Menu, X, Sun, Moon, ExternalLink } from "lucide-react";
 import { useSession, signOut, SessionProvider } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { LanguageProvider, useTranslation } from "@/lib/i18n-context";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,15 +21,12 @@ const geistMono = Geist_Mono({
 
 function Navbar() {
   const { data: session } = useSession();
+  const { lang, setLanguage, t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isDark, setIsDark] = useState(() => {
     if (typeof window === 'undefined') return false;
     const stored = localStorage.getItem('theme');
     return stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  });
-  const [lang, setLang] = useState(() => {
-    if (typeof window === 'undefined') return 'zh';
-    return (localStorage.getItem('lang') as 'zh' | 'en') || 'zh';
   });
 
   useEffect(() => {
@@ -43,18 +41,17 @@ function Navbar() {
   };
 
   const toggleLang = () => {
-    const next = lang === 'zh' ? 'en' : 'zh';
-    setLang(next);
-    localStorage.setItem('lang', next);
+    const next: 'zh' | 'en' = lang === 'zh' ? 'en' : 'zh';
+    setLanguage(next);
   };
 
   const navLinks = [
-    { href: '/evaluate', label: '评测' },
-    { href: '/rankings', label: '排行榜' },
-    { href: '/benchmarks', label: '测评集' },
-    { href: '/skill', label: '技能' },
-    { href: '/faq', label: '常见问题' },
-    { href: '/api-docs', label: 'API' },
+    { href: '/evaluate', label: t('nav.evaluate') },
+    { href: '/rankings', label: t('nav.rankings') },
+    { href: '/benchmarks', label: t('nav.benchmarks') },
+    { href: '/skill', label: t('nav.skill') },
+    { href: '/faq', label: t('nav.faq') },
+    { href: '/api-docs', label: t('nav.api') },
   ];
 
   return (
@@ -88,7 +85,7 @@ function Navbar() {
             className="hidden items-center gap-1 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:flex"
           >
             <ExternalLink className="size-3.5" />
-            <span>开源</span>
+            <span>{t('nav.github')}</span>
           </a>
           {/* Theme toggle */}
           <Button variant="ghost" size="icon-sm" onClick={toggleTheme} title={isDark ? 'Light' : 'Dark'}>
@@ -103,7 +100,7 @@ function Navbar() {
             <>
               <Link href="/dashboard">
                 <Button size="sm" className="hidden sm:inline-flex">
-                  Dashboard
+                  {t('nav.dashboard')}
                 </Button>
               </Link>
               <Button
@@ -112,13 +109,13 @@ function Navbar() {
                 className="hidden sm:inline-flex"
                 onClick={() => signOut({ callbackUrl: '/' })}
               >
-                退出
+                {t('nav.logout')}
               </Button>
             </>
           ) : (
             <Link href="/login">
               <Button size="sm" className="hidden sm:inline-flex">
-                登录
+                {t('nav.login')}
               </Button>
             </Link>
           )}
@@ -156,13 +153,13 @@ function Navbar() {
                   onClick={() => setMenuOpen(false)}
                   className="block rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
-                  Dashboard
+                  {t('nav.dashboard')}
                 </Link>
                 <button
                   onClick={() => { setMenuOpen(false); signOut({ callbackUrl: '/' }); }}
                   className="block w-full rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
-                  退出
+                  {t('nav.logout')}
                 </button>
               </>
             ) : (
@@ -171,7 +168,7 @@ function Navbar() {
                 onClick={() => setMenuOpen(false)}
                 className="block rounded-md px-3 py-2 text-sm font-medium text-primary hover:bg-muted"
               >
-                登录
+                {t('nav.login')}
               </Link>
             )}
           </nav>
@@ -182,6 +179,7 @@ function Navbar() {
 }
 
 function Footer() {
+  const { t } = useTranslation();
   return (
     <footer className="border-t border-border/40 bg-background">
       <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -194,22 +192,22 @@ function Footer() {
           </div>
           <nav className="flex items-center gap-4 text-sm text-muted-foreground">
             <a href="/about" className="transition-colors hover:text-foreground">
-              关于
+              {t('nav.about')}
             </a>
             <a href="/docs" className="transition-colors hover:text-foreground">
-              文档
+              {t('nav.docs')}
             </a>
             <a href="/faq" className="transition-colors hover:text-foreground">
-              常见问题
+              {t('nav.faq')}
             </a>
             <a href="/feedback" className="transition-colors hover:text-foreground">
-              反馈
+              {t('nav.feedback')}
             </a>
             <a href="/privacy" className="transition-colors hover:text-foreground">
-              隐私政策
+              {t('nav.privacy')}
             </a>
             <a href="/terms" className="transition-colors hover:text-foreground">
-              服务条款
+              {t('nav.terms')}
             </a>
           </nav>
           <p className="text-xs text-muted-foreground">
@@ -226,17 +224,21 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { lang } = useTranslation();
+  
   return (
     <html
-      lang="zh-CN"
+      lang={lang === 'zh' ? 'zh-CN' : 'en'}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-screen flex-col font-[family-name:var(--font-geist-sans)]">
-        <SessionProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </SessionProvider>
+        <LanguageProvider>
+          <SessionProvider>
+            <Navbar />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </SessionProvider>
+        </LanguageProvider>
       </body>
     </html>
   );
